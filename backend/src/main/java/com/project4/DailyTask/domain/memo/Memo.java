@@ -1,0 +1,37 @@
+package com.project4.DailyTask.domain.memo;
+
+import com.project4.DailyTask.domain.team.entity.Team;
+import com.project4.DailyTask.domain.user.entity.User;
+import com.project4.DailyTask.global.jpa.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+
+@Entity
+@Getter@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
+public class Memo extends BaseEntity {
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "team_id")
+    private Team team;
+
+    @Column(name = "title",nullable = false, length = 100)
+    private String title;
+
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    private String content;
+
+    @Column(name = "visibility")
+    @Enumerated(EnumType.STRING)
+    private Visibility visibility = Visibility.PRIVATE;
+
+}

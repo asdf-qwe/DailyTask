@@ -1,0 +1,53 @@
+server:
+  port: 8080
+spring:
+  output:
+    ansi:
+      enabled: ALWAYS
+  profiles:
+    active: dev
+  config:
+    import: optional:application-secret.yml  # ✅ 명시적 로딩 추가!
+  datasource:
+    url: jdbc:mysql://localhost:3306/dt
+    username: dt
+    password: dt1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+logging:
+  level:
+    com.dd.blog: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.hibernate.orm.jdbc.extract: WARN
+    org.springframework.transaction.interceptor: WARN
+
+custom:
+  dev:
+    cookieDomain: localhost
+    frontUrl: "http://${custom.dev.cookieDomain}:3000"
+    backUrl: "http://${custom.dev.cookieDomain}:${server.port}"
+  prod:
+    cookieDomain: bearlink.kr
+    frontUrl: "https://www.${custom.prod.cookieDomain}"
+    backUrl: "https://api.blog.${custom.prod.cookieDomain}"
+  site:
+    name: "BEARLINK"
+    cookie:
+      secure: false
+      sameSite: Lax
+    cookieDomain: "${custom.dev.cookieDomain}"
+    frontUrl: "${custom.dev.frontUrl}"
+    backUrl: "${custom.dev.backUrl}"
