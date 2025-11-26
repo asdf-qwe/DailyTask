@@ -26,7 +26,7 @@ public enum ErrorCode {
     ADMIN_PERMISSION_REQUIRED(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다."),
     TEAM_MEMBER_ONLY(HttpStatus.FORBIDDEN, "팀 멤버만 조회할 수 있습니다."),
     ONLY_ADMIN_CAN_KICK(HttpStatus.FORBIDDEN, "관리자만 팀원 강퇴를 할 수 있습니다."),
-    ONLY_AUTHOR_CAN_UPDATE(HttpStatus.FORBIDDEN, "작성자만 수정할 수 있습니다."),
+    ONLY_OWNER_CAN_UPDATE(HttpStatus.FORBIDDEN, "관리자만 수정할 수 있습니다."),
     ONLY_AUTHOR_CAN_DELETE(HttpStatus.FORBIDDEN, "작성자만 삭제할 수 있습니다."),
     TODO_CREATE_FORBIDDEN(HttpStatus.FORBIDDEN, "할 일을 생성할 권한이 없습니다."),
     TODO_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀원이나 본인만 할 일 수정이 가능합니다."),
@@ -38,6 +38,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
     TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀입니다."),
     CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 코드입니다."),
+    TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀원입니다."),
 
     // 410 GONE (영구적으로 만료됨)
     INVITE_CODE_EXPIRED(HttpStatus.GONE, "만료된 코드입니다.");

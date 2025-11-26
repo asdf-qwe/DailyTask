@@ -125,4 +125,29 @@ public class ApiV1TeamService {
                 teamMember.getRole()
         );
     }
+
+    @Transactional
+    public UpdateTeamRes updateTeam(Long teamId, SecurityUser user, UpdateTeamReq req){
+
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndRole(teamId, Role.OWNER)
+                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+
+        if (!user.getId().equals(teamMember.getUser().getId())){
+            throw new ApiException(ErrorCode.ONLY_OWNER_CAN_UPDATE);
+        }
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        team.setName(req.getName());
+        team.setDescription(req.getDescription());
+
+        return new UpdateTeamRes(
+                team.getId(),
+                team.getName(),
+                team.getDescription(),
+                team.getUpdatedAt()
+        );
+
+    }
 }
