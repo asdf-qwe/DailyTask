@@ -150,4 +150,20 @@ public class ApiV1TeamService {
         );
 
     }
+
+    @Transactional
+    public Boolean leftTeam(Long teamId, SecurityUser user) {
+
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
+                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+
+        if (teamMember.getRole() == Role.OWNER) {
+            throw new ApiException(ErrorCode.OWNER_CANNOT_LEAVE);
+        }
+
+        teamMemberRepository.delete(teamMember);
+
+        return true;
+    }
+
 }

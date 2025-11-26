@@ -50,4 +50,13 @@ public class ApiV1TeamController {
 
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
+
+    @PostMapping("/{teamId}/leave")
+    public ResponseEntity<ApiResponse<Boolean>> leftTeam(@PathVariable Long teamId,
+                                                         @AuthenticationPrincipal SecurityUser user){
+        teamService.leftTeam(teamId, user);
+
+        return ResponseEntity.ok(ApiResponse.ok(true));
+
+    }
 }
