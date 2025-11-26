@@ -16,6 +16,7 @@ public enum ErrorCode {
     MEMO_NOT_FOUND_FOR_COMMENT(HttpStatus.BAD_REQUEST, "메모가 없어 댓글을 달 수 없습니다."),
     TODO_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "제목이 없어 TODO를 생성할 수 없습니다."),
     FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "업로드 할 파일 용량이 초과되었습니다."),
+    ALREADY_TEAM_MEMBER(HttpStatus.BAD_REQUEST, "중복 초대입니다."),
 
     // 401 UNAUTHORIZED (인증 필요)
     ADMIN_AUTH_REQUIRED(HttpStatus.UNAUTHORIZED, "관리자 인증이 필요합니다."),
@@ -36,6 +37,8 @@ public enum ErrorCode {
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "읽을 알림이 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
     TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀입니다."),
+    CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 코드입니다."),
+
     // 410 GONE (영구적으로 만료됨)
     INVITE_CODE_EXPIRED(HttpStatus.GONE, "만료된 코드입니다.");
 
