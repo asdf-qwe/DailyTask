@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     boolean existsByTeamIdAndUserIdAndRole(Long teamId, Long userId, Role role);
+    boolean existsByTeamIdAndUserId(Long teamId, Long userId);
 }

@@ -1,10 +1,7 @@
 package com.project4.DailyTask.domain.team.service;
 
 
-import com.project4.DailyTask.domain.team.dto.CreateInviteCodeRequest;
-import com.project4.DailyTask.domain.team.dto.CreateTeamRequest;
-import com.project4.DailyTask.domain.team.dto.CreateTeamResponse;
-import com.project4.DailyTask.domain.team.dto.InviteCodeResponse;
+import com.project4.DailyTask.domain.team.dto.*;
 import com.project4.DailyTask.domain.team.entity.*;
 import com.project4.DailyTask.domain.team.repository.TeamInviteCodeRepository;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
@@ -22,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -80,6 +78,8 @@ public class ApiV1TeamService {
 
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(dto.expiresInHours());
 
+        teamInviteCodeRepository.deleteByTeamId(teamId);
+
         TeamInviteCode inviteCode = TeamInviteCode.builder()
                 .code(UUID.randomUUID().toString().replace("-", ""))
                 .expiresAt(expiresAt)
@@ -91,6 +91,38 @@ public class ApiV1TeamService {
         return new InviteCodeResponse(
                 inviteCode.getCode(),
                 inviteCode.getExpiresAt()
+        );
+    }
+
+    @Transactional
+    public JoinTeamResponse joinTeam(JoinTeamRequest dto, SecurityUser user) {
+
+        TeamInviteCode inviteCode = teamInviteCodeRepository.findByCode(dto.getInviteCode())
+                .orElseThrow(() -> new ApiException(ErrorCode.CODE_NOT_FOUND));
+
+        Team team = inviteCode.getTeam();
+
+        if (inviteCode.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ApiException(ErrorCode.INVITE_CODE_EXPIRED);
+        }
+
+        boolean exists = teamMemberRepository.existsByTeamIdAndUserId(team.getId(), user.getId());
+        if (exists) {
+            throw new ApiException(ErrorCode.ALREADY_TEAM_MEMBER);
+        }
+
+        TeamMember teamMember = new TeamMember();
+        teamMember.setTeam(team);
+        teamMember.setUser(userRepository.getReferenceById(user.getId()));
+        teamMember.setRole(Role.MEMBER);
+        teamMember.setJoinedAt(LocalDateTime.now());
+
+        teamMemberRepository.save(teamMember);
+
+        return new JoinTeamResponse(
+                team.getId(),
+                team.getName(),
+                teamMember.getRole()
         );
     }
 }
