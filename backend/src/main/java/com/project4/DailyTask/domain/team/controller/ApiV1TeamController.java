@@ -24,7 +24,7 @@ public class ApiV1TeamController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
-    @PostMapping("{teamId}/invite-code")
+    @PostMapping("/{teamId}/invite-code")
     public ResponseEntity<ApiResponse<InviteCodeResponse>> CreateCode(@PathVariable Long teamId,
                                                                     @AuthenticationPrincipal SecurityUser user,
                                                                     @RequestBody CreateInviteCodeRequest dto){
@@ -39,5 +39,15 @@ public class ApiV1TeamController {
         JoinTeamResponse response = teamService.joinTeam(dto, user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
+    }
+
+    @PutMapping("/{teamId}")
+    public ResponseEntity<ApiResponse<UpdateTeamRes>> UpdateTeam(@RequestBody UpdateTeamReq req,
+                                                                 @AuthenticationPrincipal SecurityUser user,
+                                                                 @PathVariable Long teamId){
+
+        UpdateTeamRes res = teamService.updateTeam(teamId, user, req);
+
+        return ResponseEntity.ok(ApiResponse.ok(res));
     }
 }
