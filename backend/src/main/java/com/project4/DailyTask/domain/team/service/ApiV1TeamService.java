@@ -6,21 +6,18 @@ import com.project4.DailyTask.domain.team.entity.*;
 import com.project4.DailyTask.domain.team.repository.TeamInviteCodeRepository;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.domain.team.repository.TeamRepository;
-import com.project4.DailyTask.domain.user.entity.Status;
-import com.project4.DailyTask.domain.user.entity.User;
-import com.project4.DailyTask.domain.user.entity.UserRole;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
-import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -152,7 +149,7 @@ public class ApiV1TeamService {
     }
 
     @Transactional
-    public Boolean leftTeam(Long teamId, SecurityUser user) {
+    public void leftTeam(Long teamId, SecurityUser user) {
 
         TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
                 .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
@@ -162,8 +159,54 @@ public class ApiV1TeamService {
         }
 
         teamMemberRepository.delete(teamMember);
+    }
 
-        return true;
+    public List<TeamMemberListRes> getTeamMembers(Long teamId, SecurityUser user) {
+
+        boolean isMember = teamMemberRepository.existsByTeamIdAndUserId(teamId, user.getId());
+        if (!isMember) {
+            throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND); // 또는 403
+        }
+
+        List<TeamMember> teamMembers = teamMemberRepository.findAllByTeamIdWithUser(teamId);
+
+        return teamMembers.stream()
+                .map(teamMember -> new TeamMemberListRes(
+                        teamMember.getId(),
+                        teamMember.getUser().getId(),
+                        teamMember.getUser().getNickname(),
+                        teamMember.getUser().getEmail(),
+                        teamMember.getRole()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public void deleteMember(Long teamId, SecurityUser user, Long memberId) {
+
+        if (!teamRepository.existsById(teamId)) {
+            throw new ApiException(ErrorCode.TEAM_NOT_FOUND);
+        }
+
+        boolean isOwner = teamMemberRepository
+                .existsByTeamIdAndUserIdAndRole(teamId, user.getId(), Role.OWNER);
+
+        if (!isOwner) {
+            throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE); // 403
+        }
+
+        boolean isTargetMember = teamMemberRepository
+                .existsByTeamIdAndUserId(teamId, memberId);
+
+        if (!isTargetMember) {
+            throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND);
+        }
+
+        if (memberId.equals(user.getId())) {
+            throw new ApiException(ErrorCode.OWNER_CANNOT_LEAVE);
+        }
+
+        teamMemberRepository.deleteByTeamIdAndUserId(teamId, memberId);
     }
 
 }
