@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("api/v1/teams")
@@ -58,5 +60,23 @@ public class ApiV1TeamController {
 
         return ResponseEntity.ok(ApiResponse.ok(true));
 
+    }
+
+    @GetMapping("/{teamId}/members")
+    public ResponseEntity<ApiResponse<List<TeamMemberListRes>>> getTeamMemberList(@PathVariable Long teamId,
+                                                                                  @AuthenticationPrincipal SecurityUser user){
+        List<TeamMemberListRes> memberListRes = teamService.getTeamMembers(teamId, user);
+
+        return ResponseEntity.ok(ApiResponse.ok(memberListRes));
+    }
+
+    @DeleteMapping("/{teamId}/members/{memberId}")
+    public ResponseEntity<ApiResponse<Boolean>> deleteMember(@PathVariable Long teamId,
+                                                             @PathVariable Long userId,
+                                                             @AuthenticationPrincipal SecurityUser user){
+
+        teamService.deleteMember(teamId,user,userId);
+
+        return ResponseEntity.ok(ApiResponse.ok(true));
     }
 }
