@@ -1,14 +1,14 @@
-package com.project4.DailyTask.domain.memo;
+package com.project4.DailyTask.domain.memo.entity;
 
 import com.project4.DailyTask.domain.team.entity.Team;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.global.jpa.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter@Setter
@@ -33,5 +33,9 @@ public class Memo extends BaseEntity {
     @Column(name = "visibility")
     @Enumerated(EnumType.STRING)
     private Visibility visibility = Visibility.PRIVATE;
+
+    @OneToMany(mappedBy = "memo", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<MemoImage> images = new ArrayList<>();
 
 }

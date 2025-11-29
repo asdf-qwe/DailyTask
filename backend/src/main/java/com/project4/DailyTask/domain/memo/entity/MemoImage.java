@@ -1,4 +1,4 @@
-package com.project4.DailyTask.domain.memo;
+package com.project4.DailyTask.domain.memo.entity;
 
 import com.project4.DailyTask.global.jpa.BaseEntity;
 import jakarta.persistence.Column;
@@ -10,6 +10,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+
+import java.util.List;
 
 @Entity
 @Getter@Setter

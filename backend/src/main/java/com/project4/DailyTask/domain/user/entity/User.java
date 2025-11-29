@@ -35,7 +35,7 @@ public class User extends BaseEntity {
     @Column(name = "nickname", nullable = false, length = 30)
     private String nickname;
 
-    @Column(name = "profile_url", nullable = false, length = 255)
+    @Column(name = "profile_url", length = 255)
     private String profile_url;
 
     @Column(name = "status")
