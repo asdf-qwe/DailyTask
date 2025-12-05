@@ -32,6 +32,8 @@ public enum ErrorCode {
     ONLY_OWNER_CAN_DELETE(HttpStatus.FORBIDDEN, "팀장만 삭제할 수 있습니다."),
     TODO_CREATE_FORBIDDEN(HttpStatus.FORBIDDEN, "할 일을 생성할 권한이 없습니다."),
     TODO_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀원이나 본인만 할 일 수정이 가능합니다."),
+    MEMO_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "본인만 메모 수정이 가능합니다."),
+    MEMO_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀장이나 본인만 메모 삭제가 가능합니다."),
     TODO_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀원이나 본인만 할 일 삭제가 가능합니다."),
 
     // 404 NOT_FOUND (존재하지 않음)

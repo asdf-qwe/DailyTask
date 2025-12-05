@@ -39,7 +39,7 @@ public class User extends BaseEntity {
     private String nickname;
 
     @Column(name = "profile_url", length = 255)
-    private String profile_url;
+    private String profileUrl;
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)

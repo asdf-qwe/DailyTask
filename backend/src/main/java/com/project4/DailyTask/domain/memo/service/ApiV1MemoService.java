@@ -1,14 +1,12 @@
 package com.project4.DailyTask.domain.memo.service;
 
-import com.project4.DailyTask.domain.memo.dtio.CreateMemoReq;
-import com.project4.DailyTask.domain.memo.dtio.CreateMemoRes;
-import com.project4.DailyTask.domain.memo.dtio.MemoListRes;
-import com.project4.DailyTask.domain.memo.dtio.MemoSearchCond;
+import com.project4.DailyTask.domain.memo.dtio.*;
 import com.project4.DailyTask.domain.memo.entity.Memo;
 import com.project4.DailyTask.domain.memo.entity.MemoImage;
 import com.project4.DailyTask.domain.memo.entity.Visibility;
 import com.project4.DailyTask.domain.memo.repository.MemoImageRepository;
 import com.project4.DailyTask.domain.memo.repository.MemoRepository;
+import com.project4.DailyTask.domain.team.entity.Role;
 import com.project4.DailyTask.domain.team.entity.Team;
 import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
@@ -125,6 +123,94 @@ public class ApiV1MemoService {
         if (content == null) return "";
         return content.length() > 40 ? content.substring(0, 40) + "..." : content;
     }
+
+    public MemoRes getMemo(Long memoId, SecurityUser user){
+        Memo memo = memoRepository.findById(memoId)
+                .orElseThrow(()-> new ApiException(ErrorCode.MEMO_NOT_FOUND));
+
+        teamMemberRepository.findByTeamIdAndUserId(memo.getTeam().getId(), user.getId())
+                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_MEMBER_ONLY));
+
+        List<MemoImage> memoImageList = memoImageRepository.findByMemoId(memoId);
+
+        List<String> imageUrls = memoImageList.stream()
+                .map(MemoImage :: getImageUrl)
+                .toList();
+
+        boolean sharedToTeam = memo.getVisibility() == Visibility.TEAM;
+
+        return new MemoRes(
+                memo.getId(),
+                memo.getTeam().getId(),
+                memo.getTitle(),
+                memo.getContent(),
+                imageUrls,
+                new CreateMemoRes.Author(
+                        memo.getUser().getId(),
+                        memo.getUser().getNickname()
+                ),
+                sharedToTeam,
+                memo.getCreatedAt()
+        );
+    }
+
+    @Transactional
+    public UpdateMemoRes updateMemo(UpdateMemoReq req, Long memoId, SecurityUser user){
+        Memo memo = memoRepository.findById(memoId)
+                .orElseThrow(() -> new ApiException(ErrorCode.MEMO_NOT_FOUND));
+
+        if (!user.getId().equals(memo.getUser().getId())) {
+            throw new ApiException(ErrorCode.MEMO_UPDATE_FORBIDDEN);
+        }
+
+        if (req.getTitle() != null) {
+            memo.setTitle(req.getTitle());
+        }
+        if (req.getContent() != null) {
+            memo.setContent(req.getContent());
+        }
+
+        if (req.getImageUrls() != null) {
+            memo.getImages().clear();
+
+            for (String url : req.getImageUrls()) {
+                memo.addImage(url);
+            }
+        }
+        
+        if (req.getSharedToTeam() != null) {
+            Visibility visibility = req.getSharedToTeam()
+                    ? Visibility.TEAM
+                    : Visibility.PRIVATE;
+            memo.setVisibility(visibility);
+        }
+
+        return new UpdateMemoRes(
+                memo.getId(),
+                memo.getTitle(),
+                memo.getUpdatedAt()
+        );
+    }
+
+    @Transactional
+    public void deleteMemo(Long memoId, SecurityUser user){
+        Memo memo = memoRepository.findById(memoId)
+                .orElseThrow(() -> new ApiException(ErrorCode.MEMO_NOT_FOUND));
+
+        TeamMember teamMember = teamMemberRepository
+                .findByTeamIdAndUserId(memo.getTeam().getId(), user.getId())
+                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+
+        boolean isAuthor = user.getId().equals(memo.getUser().getId());
+        boolean isOwner = teamMember.getRole() == Role.OWNER;
+
+        if (!isAuthor && !isOwner) {
+            throw new ApiException(ErrorCode.MEMO_DELETE_FORBIDDEN);
+        }
+
+        memoRepository.delete(memo);
+    }
+
 
 }
 
