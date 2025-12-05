@@ -25,6 +25,9 @@ import java.util.List;
 @SuperBuilder
 public class User extends BaseEntity {
 
+    @Column(name = "login_id", nullable = false, unique = true, length = 50)
+    private String loginId;
+
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
@@ -36,11 +39,14 @@ public class User extends BaseEntity {
     private String nickname;
 
     @Column(name = "profile_url", length = 255)
-    private String profile_url;
+    private String profileUrl;
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private Status status = Status.ACTIVE;
+
+    @Column(name = "refresh_token", length = 255)
+    private String refreshToken;
 
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)

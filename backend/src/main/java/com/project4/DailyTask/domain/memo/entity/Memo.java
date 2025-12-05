@@ -38,4 +38,12 @@ public class Memo extends BaseEntity {
     @Builder.Default
     private List<MemoImage> images = new ArrayList<>();
 
+    public void addImage(String imageUrl) {
+        MemoImage image = MemoImage.builder()
+                .memo(this)
+                .imageUrl(imageUrl)
+                .build();
+        images.add(image);
+    }
+
 }

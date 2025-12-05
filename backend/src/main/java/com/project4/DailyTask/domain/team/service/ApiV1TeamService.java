@@ -165,7 +165,7 @@ public class ApiV1TeamService {
 
         boolean isMember = teamMemberRepository.existsByTeamIdAndUserId(teamId, user.getId());
         if (!isMember) {
-            throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND); // 또는 403
+            throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND);
         }
 
         List<TeamMember> teamMembers = teamMemberRepository.findAllByTeamIdWithUser(teamId);
@@ -192,7 +192,7 @@ public class ApiV1TeamService {
                 .existsByTeamIdAndUserIdAndRole(teamId, user.getId(), Role.OWNER);
 
         if (!isOwner) {
-            throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE); // 403
+            throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE);
         }
 
         boolean isTargetMember = teamMemberRepository

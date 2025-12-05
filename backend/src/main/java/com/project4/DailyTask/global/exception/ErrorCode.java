@@ -21,6 +21,8 @@ public enum ErrorCode {
     // 401 UNAUTHORIZED (인증 필요)
     ADMIN_AUTH_REQUIRED(HttpStatus.UNAUTHORIZED, "관리자 인증이 필요합니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+    INVALID_LOGIN_ID(HttpStatus.UNAUTHORIZED, "아이디가 올바르지 않습니다."),
+    INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다."),
 
     // 403 FORBIDDEN (권한 없음)
     ADMIN_PERMISSION_REQUIRED(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다."),
@@ -30,6 +32,8 @@ public enum ErrorCode {
     ONLY_OWNER_CAN_DELETE(HttpStatus.FORBIDDEN, "팀장만 삭제할 수 있습니다."),
     TODO_CREATE_FORBIDDEN(HttpStatus.FORBIDDEN, "할 일을 생성할 권한이 없습니다."),
     TODO_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀원이나 본인만 할 일 수정이 가능합니다."),
+    MEMO_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "본인만 메모 수정이 가능합니다."),
+    MEMO_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀장이나 본인만 메모 삭제가 가능합니다."),
     TODO_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀원이나 본인만 할 일 삭제가 가능합니다."),
 
     // 404 NOT_FOUND (존재하지 않음)
@@ -39,6 +43,9 @@ public enum ErrorCode {
     TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀입니다."),
     CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 코드입니다."),
     TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀원입니다."),
+
+    // 409 CONFLICT
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 등록된 이메일입니다."),
 
     // 410 GONE (영구적으로 만료됨)
     INVITE_CODE_EXPIRED(HttpStatus.GONE, "만료된 코드입니다.");
