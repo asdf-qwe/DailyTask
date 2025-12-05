@@ -1,12 +1,11 @@
 package com.project4.DailyTask.team;
 
+import com.project4.DailyTask.domain.memo.dtio.UpdateMemoReq;
 import com.project4.DailyTask.domain.team.dto.CreateInviteCodeRequest;
 import com.project4.DailyTask.domain.team.dto.CreateTeamRequest;
 import com.project4.DailyTask.domain.team.dto.JoinTeamRequest;
-import com.project4.DailyTask.domain.team.entity.Role;
-import com.project4.DailyTask.domain.team.entity.Team;
-import com.project4.DailyTask.domain.team.entity.TeamInviteCode;
-import com.project4.DailyTask.domain.team.entity.TeamMember;
+import com.project4.DailyTask.domain.team.dto.UpdateTeamReq;
+import com.project4.DailyTask.domain.team.entity.*;
 import com.project4.DailyTask.domain.team.repository.TeamInviteCodeRepository;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.domain.team.repository.TeamRepository;
@@ -23,6 +22,7 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,6 +48,7 @@ public class TeamServiceUnitTest {
     private ArgumentCaptor<TeamMember> teamMemberArgumentCaptor;
 
     private SecurityUser user1;
+    private User user2;
     private CreateTeamRequest dto;
     private Team team;
     private CreateInviteCodeRequest createInviteCodeRequest;
@@ -57,13 +58,21 @@ public class TeamServiceUnitTest {
     @BeforeEach
     void setup(){
         user1 = new SecurityUser(
-                1L,
+                2L,
                 "user@test.com",
                 "encodedPassword",
                 "Hyun",
                 UserRole.ADMIN,
                 List.of(() -> "ROLE_ADMIN")
         );
+
+        user2 = User.builder()
+                .id(2L)
+                .email("user2@test.com")
+                .password("encodedPassword")
+                .nickname("hyun2")
+                .role(UserRole.ADMIN)
+                .build();
 
         team = Team.builder()
                 .id(1L)
@@ -86,7 +95,7 @@ public class TeamServiceUnitTest {
 
     @Test
     @DisplayName("팀 생성 테스트")
-    public void creatTeam_success(){
+    public void createTeam_success(){
 
     User mockUser = Mockito.mock(User.class);
     when(mockUser.getId()).thenReturn(user1.getId());
@@ -138,6 +147,48 @@ public class TeamServiceUnitTest {
         teamService.joinTeam(joinTeamRequest, user1);
 
         verify(teamMemberRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("팀 정보 수정 테스트")
+    public void updateTeam_success(){
+
+        TeamMember teamMember = new TeamMember();
+        teamMember.setUser(user2);
+        teamMember.setTeam(team);
+        teamMember.setRole(Role.OWNER);
+        teamMember.setTeamStatus(TeamStatus.JOINED);
+
+        UpdateTeamReq req = new UpdateTeamReq("test2", "desc2");
+
+        when(teamMemberRepository.findByTeamIdAndRole(team.getId(), Role.OWNER))
+                .thenReturn(Optional.of(teamMember));
+        when(teamRepository.findById(team.getId()))
+                .thenReturn(Optional.ofNullable(team));
+
+        teamService.updateTeam(team.getId(), user1, req);
+
+        assertEquals(req.getName(), team.getName());
+    }
+
+    @Test
+    @DisplayName("팀 멤버 목록 조회")
+    public void getTeamMember_success(){
+
+        TeamMember teamMember = new TeamMember();
+        teamMember.setUser(user2);
+        teamMember.setTeam(team);
+        teamMember.setRole(Role.OWNER);
+        teamMember.setTeamStatus(TeamStatus.JOINED);
+
+        List<TeamMember> teamMembers = new ArrayList<>();
+        teamMembers.add(teamMember);
+
+        when(teamMemberRepository.existsByTeamIdAndUserId(team.getId(),user1.getId()))
+                .thenReturn(true);
+
+        when(teamMemberRepository.findAllByTeamIdWithUser(team.getId())).thenReturn(teamMembers);
+
     }
 
 }

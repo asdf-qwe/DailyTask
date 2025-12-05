@@ -32,7 +32,7 @@ public class UserService {
                 .password(passwordEncoder.encode(req.getPassword()))
                 .nickname(req.getNickname())
                 .email(req.getEmail())
-                .profile_url("example")
+                .profileUrl("example")
                 .status(Status.ACTIVE)
                 .role(UserRole.USER)
                 .build();
