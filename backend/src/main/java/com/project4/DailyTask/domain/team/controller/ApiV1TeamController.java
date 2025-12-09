@@ -53,7 +53,7 @@ public class ApiV1TeamController {
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
-    @PostMapping("/{teamId}/leave")
+    @PatchMapping("/{teamId}/leave")
     public ResponseEntity<ApiResponse<Boolean>> leftTeam(@PathVariable Long teamId,
                                                          @AuthenticationPrincipal SecurityUser user){
         teamService.leftTeam(teamId, user);
@@ -70,7 +70,7 @@ public class ApiV1TeamController {
         return ResponseEntity.ok(ApiResponse.ok(memberListRes));
     }
 
-    @DeleteMapping("/{teamId}/members/{memberId}")
+    @PatchMapping("/{teamId}/members/{memberId}")
     public ResponseEntity<ApiResponse<Boolean>> deleteMember(@PathVariable Long teamId,
                                                              @PathVariable Long userId,
                                                              @AuthenticationPrincipal SecurityUser user){

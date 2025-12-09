@@ -1,4 +1,4 @@
-package com.project4.DailyTask.domain.todo;
+package com.project4.DailyTask.domain.todo.entity;
 
 import com.project4.DailyTask.domain.team.entity.Team;
 import com.project4.DailyTask.domain.user.entity.User;
@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -32,6 +33,6 @@ public class Todo extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private TodoStatus todoStatus = TodoStatus.PENDING;
 
-    private LocalDateTime due_date;
+    private LocalDate dueDate;
 
 }

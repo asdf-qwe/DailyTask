@@ -40,6 +40,7 @@ public enum ErrorCode {
     MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모가 없습니다."),
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "읽을 알림이 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
+    TODO_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 TODO 입니다."),
     TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀입니다."),
     CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 코드입니다."),
     TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀원입니다."),

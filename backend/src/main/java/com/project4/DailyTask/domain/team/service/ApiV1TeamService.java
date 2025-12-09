@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -68,7 +69,7 @@ public class ApiV1TeamService {
             throw new ApiException(ErrorCode.TEAM_NOT_FOUND);
         }
 
-        boolean isOwner = teamMemberRepository.existsByTeamIdAndUserIdAndRole(teamId, user.getId(), Role.OWNER);
+        boolean isOwner = teamMemberRepository.existsByTeamIdAndUserIdAndRoleAndTeamStatus(teamId, user.getId(), Role.OWNER, TeamStatus.JOINED);
         if (!isOwner) {
             throw new ApiException(ErrorCode.ADMIN_AUTH_REQUIRED);
         }
@@ -103,30 +104,48 @@ public class ApiV1TeamService {
             throw new ApiException(ErrorCode.INVITE_CODE_EXPIRED);
         }
 
-        boolean exists = teamMemberRepository.existsByTeamIdAndUserId(team.getId(), user.getId());
-        if (exists) {
-            throw new ApiException(ErrorCode.ALREADY_TEAM_MEMBER);
+        Optional<TeamMember> optionalMember =
+                teamMemberRepository.findByTeamIdAndUserId(team.getId(), user.getId());
+
+        if (optionalMember.isPresent()) {
+            TeamMember oldMember = optionalMember.get();
+
+            if (oldMember.getTeamStatus() == TeamStatus.JOINED) {
+                throw new ApiException(ErrorCode.ALREADY_TEAM_MEMBER);
+            }
+
+            oldMember.setTeamStatus(TeamStatus.JOINED);
+            oldMember.setJoinedAt(LocalDateTime.now());
+            oldMember.setLeftAt(null);
+
+            return new JoinTeamResponse(
+                    team.getId(),
+                    team.getName(),
+                    oldMember.getRole()
+            );
         }
 
-        TeamMember teamMember = new TeamMember();
-        teamMember.setTeam(team);
-        teamMember.setUser(userRepository.getReferenceById(user.getId()));
-        teamMember.setRole(Role.MEMBER);
-        teamMember.setJoinedAt(LocalDateTime.now());
+        TeamMember newMember = new TeamMember();
+        newMember.setTeam(team);
+        newMember.setUser(userRepository.getReferenceById(user.getId()));
+        newMember.setRole(Role.MEMBER);
+        newMember.setTeamStatus(TeamStatus.JOINED);
+        newMember.setJoinedAt(LocalDateTime.now());
 
-        teamMemberRepository.save(teamMember);
+        teamMemberRepository.save(newMember);
 
         return new JoinTeamResponse(
                 team.getId(),
                 team.getName(),
-                teamMember.getRole()
+                newMember.getRole()
         );
     }
+
 
     @Transactional
     public UpdateTeamRes updateTeam(Long teamId, SecurityUser user, UpdateTeamReq req){
 
-        TeamMember teamMember = teamMemberRepository.findByTeamIdAndRole(teamId, Role.OWNER)
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndRoleAndTeamStatus(teamId, Role.OWNER, TeamStatus.JOINED)
                 .orElseThrow(()-> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
 
         if (!user.getId().equals(teamMember.getUser().getId())){
@@ -158,17 +177,17 @@ public class ApiV1TeamService {
             throw new ApiException(ErrorCode.OWNER_CANNOT_LEAVE);
         }
 
-        teamMemberRepository.delete(teamMember);
+        teamMember.setTeamStatus(TeamStatus.LEFT);
     }
 
     public List<TeamMemberListRes> getTeamMembers(Long teamId, SecurityUser user) {
 
-        boolean isMember = teamMemberRepository.existsByTeamIdAndUserId(teamId, user.getId());
+        boolean isMember = teamMemberRepository.existsByTeamIdAndUserIdAndTeamStatus(teamId, user.getId(),TeamStatus.JOINED);
         if (!isMember) {
             throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND);
         }
 
-        List<TeamMember> teamMembers = teamMemberRepository.findAllByTeamIdWithUser(teamId);
+        List<TeamMember> teamMembers = teamMemberRepository.findAllByTeamIdAndTeamStatusWithUser(teamId,TeamStatus.JOINED);
 
         return teamMembers.stream()
                 .map(teamMember -> new TeamMemberListRes(
@@ -189,14 +208,14 @@ public class ApiV1TeamService {
         }
 
         boolean isOwner = teamMemberRepository
-                .existsByTeamIdAndUserIdAndRole(teamId, user.getId(), Role.OWNER);
+                .existsByTeamIdAndUserIdAndRoleAndTeamStatus(teamId, user.getId(), Role.OWNER, TeamStatus.JOINED);
 
         if (!isOwner) {
             throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE);
         }
 
         boolean isTargetMember = teamMemberRepository
-                .existsByTeamIdAndUserId(teamId, memberId);
+                .existsByTeamIdAndUserIdAndTeamStatus(teamId, memberId, TeamStatus.JOINED);
 
         if (!isTargetMember) {
             throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND);
@@ -206,7 +225,9 @@ public class ApiV1TeamService {
             throw new ApiException(ErrorCode.OWNER_CANNOT_LEAVE);
         }
 
-        teamMemberRepository.deleteByTeamIdAndUserId(teamId, memberId);
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, memberId)
+                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+        teamMember.setTeamStatus(TeamStatus.LEFT);
     }
 
 }
