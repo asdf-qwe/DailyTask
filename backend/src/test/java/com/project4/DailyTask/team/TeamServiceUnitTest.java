@@ -123,7 +123,7 @@ public class TeamServiceUnitTest {
                 .thenReturn(team);
 
         when(teamRepository.existsById(team.getId())).thenReturn(true);
-        when(teamMemberRepository.existsByTeamIdAndUserIdAndRole(team.getId(), user1.getId(), Role.OWNER))
+        when(teamMemberRepository.existsByTeamIdAndUserIdAndRoleAndTeamStatus(team.getId(), user1.getId(), Role.OWNER, TeamStatus.JOINED))
                 .thenReturn(true);
 
         teamService.createInviteCode(team.getId(),user1,createInviteCodeRequest);
@@ -138,7 +138,7 @@ public class TeamServiceUnitTest {
         when(teamInviteCodeRepository.findByCode(joinTeamRequest.getInviteCode()))
                 .thenReturn(Optional.of(inviteCode));
 
-        when(teamMemberRepository.existsByTeamIdAndUserId(team.getId(), user1.getId()))
+        when(teamMemberRepository.existsByTeamIdAndUserIdAndTeamStatus(team.getId(), user1.getId(),TeamStatus.JOINED))
                 .thenReturn(false);
 
         when(userRepository.getReferenceById(user1.getId()))
@@ -184,7 +184,7 @@ public class TeamServiceUnitTest {
         List<TeamMember> teamMembers = new ArrayList<>();
         teamMembers.add(teamMember);
 
-        when(teamMemberRepository.existsByTeamIdAndUserId(team.getId(),user1.getId()))
+        when(teamMemberRepository.existsByTeamIdAndUserIdAndTeamStatus(team.getId(),user1.getId(),TeamStatus.JOINED))
                 .thenReturn(true);
 
         when(teamMemberRepository.findAllByTeamIdWithUser(team.getId())).thenReturn(teamMembers);
