@@ -54,7 +54,7 @@ public class AuthLoginService {
     }
 
     @Transactional
-    public TokenResponseDto responseDto(String refreshToken){
+    public TokenResponseDto refreshToken(String refreshToken){
         if(!authTokenService.isValid(refreshToken)){
             throw new ApiException(ErrorCode.INVALID_TOKEN);
         }

@@ -11,6 +11,7 @@ public enum ErrorCode {
     // 400 BAD_REQUEST (잘못된 요청)
     TEAM_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "팀 이름이 없습니다."),
     INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "잘못된 초대 코드입니다."),
+    INVALID_USER_EMAIL(HttpStatus.BAD_REQUEST, "잘못된 이메일 형식입니다."),
     OWNER_CANNOT_LEAVE(HttpStatus.BAD_REQUEST, "관리자는 팀 탈퇴를 할 수 없습니다."),
     MEMO_REQUIRED_FIELDS(HttpStatus.BAD_REQUEST, "메모 생성시 필수값이 누락되었습니다."),
     MEMO_NOT_FOUND_FOR_COMMENT(HttpStatus.BAD_REQUEST, "메모가 없어 댓글을 달 수 없습니다."),
@@ -35,6 +36,8 @@ public enum ErrorCode {
     MEMO_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "본인만 메모 수정이 가능합니다."),
     MEMO_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀장이나 본인만 메모 삭제가 가능합니다."),
     TODO_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀원이나 본인만 할 일 삭제가 가능합니다."),
+    CHANNEL_MESSAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀원만 메세지를 보낼 수 있습니다."),
+
 
     // 404 NOT_FOUND (존재하지 않음)
     MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모가 없습니다."),
@@ -42,6 +45,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
     TODO_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 TODO 입니다."),
     TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀입니다."),
+    CHANNEL_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 채널입니다."),
     CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 코드입니다."),
     TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 팀원입니다."),
 

@@ -1,12 +1,9 @@
-package com.project4.DailyTask.domain.message;
+package com.project4.DailyTask.domain.message.entity;
 
-import com.project4.DailyTask.domain.channel.Channel;
+import com.project4.DailyTask.domain.channel.entity.Channel;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.global.jpa.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,11 +16,11 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class Message extends BaseEntity {
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "channel_id")
     private Channel channel;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
