@@ -187,7 +187,7 @@ public class ApiV1TeamService {
             throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND);
         }
 
-        List<TeamMember> teamMembers = teamMemberRepository.findAllByTeamIdAndTeamStatusWithUser(teamId,TeamStatus.JOINED);
+        List<TeamMember> teamMembers = teamMemberRepository.findAllByTeamIdAndStatusWithUser(teamId,TeamStatus.JOINED);
 
         return teamMembers.stream()
                 .map(teamMember -> new TeamMemberListRes(

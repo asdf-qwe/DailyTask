@@ -26,6 +26,4 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
             Pageable pageable
     );
 
-    @Query("SELECT COUNT(c) FROM Comment c WHERE c.memo.id = :memoId")
-    long countByMemoId(@Param("memoId") Long memoId);
 }

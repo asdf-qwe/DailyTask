@@ -20,7 +20,7 @@ import java.util.List;
 public class Channel extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_id")
+    @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
     @Column(name = "name", nullable = false, length = 30)
