@@ -15,15 +15,17 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
-    @Value("{custom.jwt.secretKey}")
+    @Value("${custom.jwt.secretKey}")
     private String rawSecret;
 
     private SecretKey secretKey;
 
     @PostConstruct
-    public void init(){
-        this.secretKey = Keys.hmacShaKeyFor(rawSecret.getBytes());
+    public void init() {
+        byte[] keyBytes = rawSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
+
 
     public String generateToken(long expiresSecond, Map<String, Object> claims){
         Date now = new Date();

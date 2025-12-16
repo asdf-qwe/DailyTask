@@ -27,7 +27,7 @@ public class ApiV1TeamController {
     }
 
     @PostMapping("/{teamId}/invite-code")
-    public ResponseEntity<ApiResponse<InviteCodeResponse>> CreateCode(@PathVariable Long teamId,
+    public ResponseEntity<ApiResponse<InviteCodeResponse>> createCode(@PathVariable Long teamId,
                                                                     @AuthenticationPrincipal SecurityUser user,
                                                                     @RequestBody CreateInviteCodeRequest dto){
         InviteCodeResponse response = teamService.createInviteCode(teamId,user,dto);
@@ -36,7 +36,7 @@ public class ApiV1TeamController {
     }
 
     @PostMapping("/join")
-    public ResponseEntity<ApiResponse<JoinTeamResponse>> JoinTeam(@RequestBody JoinTeamRequest dto,
+    public ResponseEntity<ApiResponse<JoinTeamResponse>> joinTeam(@RequestBody JoinTeamRequest dto,
                                                                   @AuthenticationPrincipal SecurityUser user){
         JoinTeamResponse response = teamService.joinTeam(dto, user);
 
@@ -44,7 +44,7 @@ public class ApiV1TeamController {
     }
 
     @PutMapping("/{teamId}")
-    public ResponseEntity<ApiResponse<UpdateTeamRes>> UpdateTeam(@RequestBody UpdateTeamReq req,
+    public ResponseEntity<ApiResponse<UpdateTeamRes>> updateTeam(@RequestBody UpdateTeamReq req,
                                                                  @AuthenticationPrincipal SecurityUser user,
                                                                  @PathVariable Long teamId){
 

@@ -15,8 +15,8 @@ public class CreateMemoRes {
     private Long teamId;
     private String title;
     private String content;
-    private List<String> imageUrls;   // ← savedImages에서 추출
-    private boolean sharedToTeam;     // ← req.getSharedToTeam()
+    private List<String> imageUrls;
+    private boolean sharedToTeam;
     private Author author;
     private LocalDateTime createdAt;
 

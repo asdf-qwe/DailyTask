@@ -1,11 +1,8 @@
-package com.project4.DailyTask.domain.notification;
+package com.project4.DailyTask.domain.notification.entity;
 
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.global.jpa.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,22 +10,29 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Getter@Setter
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SuperBuilder
 public class Notification extends BaseEntity {
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "type", nullable = false, length = 30)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private NotificationType type;
 
-    @Column(name = "message", nullable = false, length = 200)
+    @Column(nullable = false, length = 200)
     private String message;
+
+    private Long relatedMemoId;
+    private Long relatedTeamId;
 
     @Column(name = "is_read", nullable = false)
     private boolean read = false;
 
+    public void markRead() {
+        this.read = true;
+    }
 }
