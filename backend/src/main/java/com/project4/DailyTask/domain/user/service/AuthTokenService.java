@@ -17,7 +17,7 @@ public class AuthTokenService {
     @Value("${custom.accessToken.expirationSeconds}")
     private long accessTokenExpirationSeconds;
 
-    @Value("${custom.refreshToken.expirationSeconds")
+    @Value("${custom.refreshToken.expirationSeconds}")
     private long refreshTokenExpirationSeconds;
 
     public String genAccessToken(User user){

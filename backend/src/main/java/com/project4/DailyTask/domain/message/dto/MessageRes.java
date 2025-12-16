@@ -1,26 +1,23 @@
-package com.project4.DailyTask.domain.memo.dtio;
+package com.project4.DailyTask.domain.message.dto;
 
-import com.project4.DailyTask.domain.user.entity.User;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @AllArgsConstructor
-public class CreateMemoRes {
-
+@Builder
+public class MessageRes {
     private Long id;
-    private Long teamId;
-    private String title;
-    private String content;
-    private List<String> imageUrls;
-    private boolean sharedToTeam;
+    private Long channelId;
     private Author author;
+    private String content;
     private LocalDateTime createdAt;
 
     @Getter
+    @Builder
     @AllArgsConstructor
     public static class Author {
         private Long id;

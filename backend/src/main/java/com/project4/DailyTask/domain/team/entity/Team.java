@@ -25,6 +25,6 @@ public class Team extends BaseEntity {
     @Column(name = "description", length = 300)
     private String description;
 
-    @OneToMany(mappedBy = "memo", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "team", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<TeamMember> teamMembers;
 }

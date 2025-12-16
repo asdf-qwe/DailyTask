@@ -15,7 +15,16 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     boolean existsByTeamIdAndUserIdAndTeamStatus(Long teamId, Long userId, TeamStatus teamStatus);
     Optional<TeamMember> findByTeamIdAndRoleAndTeamStatus(Long teamId, Role role, TeamStatus teamStatus);
     Optional<TeamMember> findByTeamIdAndUserId(Long teamId, Long userId);
-    List<TeamMember> findAllByTeamIdAndTeamStatusWithUser(Long teamId, TeamStatus teamStatus);
+    @Query("""
+select tm
+from TeamMember tm
+join fetch tm.user
+where tm.team.id = :teamId
+  and tm.teamStatus = :status
+""")
+    List<TeamMember> findAllByTeamIdAndStatusWithUser(@Param("teamId") Long teamId,
+                                                      @Param("status") TeamStatus status);
+
 
     @Query("""
        SELECT tm FROM TeamMember tm
@@ -26,4 +35,5 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     void deleteByTeamIdAndUserId(Long teamId, Long userId);
 
+    boolean existsByTeamIdAndUserId(Long teamId, Long userId);
 }
