@@ -2,9 +2,9 @@ package com.project4.DailyTask.team;
 
 import com.project4.DailyTask.domain.team.dto.CreateInviteCodeRequest;
 import com.project4.DailyTask.domain.team.dto.CreateTeamRequest;
-import com.project4.DailyTask.domain.team.entity.Role;
-import com.project4.DailyTask.domain.team.entity.Team;
-import com.project4.DailyTask.domain.team.entity.TeamMember;
+import com.project4.DailyTask.domain.team.dto.JoinTeamRequest;
+import com.project4.DailyTask.domain.team.dto.UpdateTeamReq;
+import com.project4.DailyTask.domain.team.entity.*;
 import com.project4.DailyTask.domain.team.repository.TeamInviteCodeRepository;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.domain.team.repository.TeamRepository;
@@ -20,7 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -44,13 +47,17 @@ public class TeamServiceUnitTest {
     private ArgumentCaptor<TeamMember> teamMemberArgumentCaptor;
 
     private SecurityUser user1;
+    private User user2;
     private CreateTeamRequest dto;
     private Team team;
     private CreateInviteCodeRequest createInviteCodeRequest;
+    private JoinTeamRequest joinTeamRequest;
+    private TeamInviteCode inviteCode;
+
     @BeforeEach
     void setup(){
         user1 = new SecurityUser(
-                1L,
+                2L,
                 "user@test.com",
                 "encodedPassword",
                 "Hyun",
@@ -58,21 +65,36 @@ public class TeamServiceUnitTest {
                 List.of(() -> "ROLE_ADMIN")
         );
 
+        user2 = User.builder()
+                .id(2L)
+                .email("user2@test.com")
+                .password("encodedPassword")
+                .nickname("hyun2")
+                .role(UserRole.ADMIN)
+                .build();
+
         team = Team.builder()
                 .id(1L)
                 .name("test")
                 .description("desc")
                 .build();
 
+        inviteCode = TeamInviteCode.builder()
+                .id(1L)
+                .code("testCode")
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .team(team)
+                .build();
+
 
         dto = new CreateTeamRequest("test1","description1");
         createInviteCodeRequest = new CreateInviteCodeRequest(24);
-
+        joinTeamRequest = new JoinTeamRequest("testCode");
     }
 
     @Test
     @DisplayName("팀 생성 테스트")
-    public void creatTeam_success(){
+    public void createTeam_success(){
 
     User mockUser = Mockito.mock(User.class);
     when(mockUser.getId()).thenReturn(user1.getId());
@@ -82,9 +104,9 @@ public class TeamServiceUnitTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
     teamService.createTeam(dto,user1);
 
-    verify(teamRepository).save(teamArgumentCaptor.capture());
+    verify(teamRepository, times(1)).save(teamArgumentCaptor.capture());
     Team saved = teamArgumentCaptor.getValue();
-    verify(teamMemberRepository).save(teamMemberArgumentCaptor.capture());
+    verify(teamMemberRepository, times(1)).save(teamMemberArgumentCaptor.capture());
     TeamMember memberSaved = teamMemberArgumentCaptor.getValue();
 
     assertEquals(dto.getName(), saved.getName());
@@ -100,11 +122,72 @@ public class TeamServiceUnitTest {
                 .thenReturn(team);
 
         when(teamRepository.existsById(team.getId())).thenReturn(true);
-        when(teamMemberRepository.existsByTeamIdAndUserIdAndRole(team.getId(), user1.getId(), Role.OWNER))
+        when(teamMemberRepository.existsByTeamIdAndUserIdAndRoleAndTeamStatus(team.getId(), user1.getId(), Role.OWNER, TeamStatus.JOINED))
                 .thenReturn(true);
 
         teamService.createInviteCode(team.getId(),user1,createInviteCodeRequest);
 
-        verify(teamInviteCodeRepository).save(any());
+        verify(teamInviteCodeRepository, times(1)).save(any());
     }
+
+    @Test
+    @DisplayName("팀 참가 성공 테스트")
+    public void joinTeam_success() {
+
+        when(teamInviteCodeRepository.findByCode(joinTeamRequest.getInviteCode()))
+                .thenReturn(Optional.of(inviteCode));
+
+        when(teamMemberRepository.existsByTeamIdAndUserIdAndTeamStatus(team.getId(), user1.getId(),TeamStatus.JOINED))
+                .thenReturn(false);
+
+        when(userRepository.getReferenceById(user1.getId()))
+                .thenReturn(mock(User.class));
+
+        teamService.joinTeam(joinTeamRequest, user1);
+
+        verify(teamMemberRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("팀 정보 수정 테스트")
+    public void updateTeam_success(){
+
+        TeamMember teamMember = new TeamMember();
+        teamMember.setUser(user2);
+        teamMember.setTeam(team);
+        teamMember.setRole(Role.OWNER);
+        teamMember.setTeamStatus(TeamStatus.JOINED);
+
+        UpdateTeamReq req = new UpdateTeamReq("test2", "desc2");
+
+        when(teamMemberRepository.findByTeamIdAndRoleAndTeamStatus(team.getId(), Role.OWNER,teamMember.getTeamStatus()))
+                .thenReturn(Optional.of(teamMember));
+        when(teamRepository.findById(team.getId()))
+                .thenReturn(Optional.ofNullable(team));
+
+        teamService.updateTeam(team.getId(), user1, req);
+
+        assertEquals(req.getName(), team.getName());
+    }
+
+    @Test
+    @DisplayName("팀 멤버 목록 조회")
+    public void getTeamMember_success(){
+
+        TeamMember teamMember = new TeamMember();
+        teamMember.setUser(user2);
+        teamMember.setTeam(team);
+        teamMember.setRole(Role.OWNER);
+        teamMember.setTeamStatus(TeamStatus.JOINED);
+
+        List<TeamMember> teamMembers = new ArrayList<>();
+        teamMembers.add(teamMember);
+
+        when(teamMemberRepository.existsByTeamIdAndUserIdAndTeamStatus(team.getId(),user1.getId(),TeamStatus.JOINED))
+                .thenReturn(true);
+
+        when(teamMemberRepository.findAllByTeamIdWithUser(team.getId())).thenReturn(teamMembers);
+
+    }
+
 }

@@ -1,0 +1,47 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    url: jdbc:mysql://mysql_1:3306/blog_prod
+    username: ll_local
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      auto-commit: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+        use_sql_comments: false
+  redis:
+    host: redis_1
+    port: 6379
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+logging:
+  level:
+    com.back: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.orm.jdbc.bind: INFO
+    org.hibernate.orm.jdbc.extract: INFO
+    org.springframework.transaction.interceptor: INFO
+    io.lettuce.core: DEBUG
+    org.springframework.data.redis: DEBUG
+custom:
+  site:
+    cookieDomain: "${custom.prod.cookieDomain}"
+    frontUrl: "${custom.prod.frontUrl}"
+    backUrl: "${custom.prod.backUrl}"
+  genFile:
+    dirPath: /gen

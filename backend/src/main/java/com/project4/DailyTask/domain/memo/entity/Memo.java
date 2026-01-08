@@ -1,0 +1,55 @@
+package com.project4.DailyTask.domain.memo.entity;
+
+import com.project4.DailyTask.domain.team.entity.Team;
+import com.project4.DailyTask.domain.user.entity.User;
+import com.project4.DailyTask.global.jpa.BaseEntity;
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
+public class Memo extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private Team team;
+
+    @Column(name = "title",nullable = false, length = 100)
+    private String title;
+
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    private String content;
+
+    @Column(name = "visibility")
+    @Enumerated(EnumType.STRING)
+    private Visibility visibility = Visibility.PRIVATE;
+
+    public void update(String title, String content, Boolean sharedToTeam) {
+        if (title != null) changeTitle(title);
+        if (content != null) changeContent(content);
+        if (sharedToTeam != null) changeVisibility(sharedToTeam ? Visibility.TEAM : Visibility.PRIVATE);
+    }
+
+    public void changeTitle(String title) {
+        this.title = title;
+    }
+
+    public void changeContent(String content) {
+        this.content = content;
+    }
+
+    public void changeVisibility(Visibility visibility) {
+        this.visibility = visibility;
+    }
+
+}

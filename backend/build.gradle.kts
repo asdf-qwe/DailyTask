@@ -25,7 +25,6 @@ repositories {
 }
 
 dependencies {
-	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("org.springframework.boot:spring-boot-starter-security")
@@ -36,11 +35,10 @@ dependencies {
 	testImplementation("org.springframework.security:spring-security-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-	//db관련
-	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	// db관련 (중복이라면 한 번만 두는 걸 추천)
 	runtimeOnly("com.mysql:mysql-connector-j")
 
-	//swagger 의존성
+	// swagger
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5")
 
 	// JWT & JSON
@@ -50,16 +48,19 @@ dependencies {
 	implementation("com.google.code.gson:gson")
 
 	implementation("org.jsoup:jsoup:1.17.2")
-
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
-
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
 
-	testImplementation ("com.h2database:h2")
+	testImplementation("com.h2database:h2")
 
 	// --- test ---
 	testCompileOnly("org.projectlombok:lombok")
 	testAnnotationProcessor("org.projectlombok:lombok")
+
+	// AWS SDK (S3 Presigned URL)
+	implementation(platform("software.amazon.awssdk:bom:2.25.50"))
+	implementation("software.amazon.awssdk:s3")
+	implementation("software.amazon.awssdk:sts")
 }
 
 tasks.withType<Test> {

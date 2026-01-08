@@ -1,28 +1,24 @@
 package com.project4.DailyTask.domain.team.service;
 
 
-import com.project4.DailyTask.domain.team.dto.CreateInviteCodeRequest;
-import com.project4.DailyTask.domain.team.dto.CreateTeamRequest;
-import com.project4.DailyTask.domain.team.dto.CreateTeamResponse;
-import com.project4.DailyTask.domain.team.dto.InviteCodeResponse;
+import com.project4.DailyTask.domain.team.dto.*;
 import com.project4.DailyTask.domain.team.entity.*;
 import com.project4.DailyTask.domain.team.repository.TeamInviteCodeRepository;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.domain.team.repository.TeamRepository;
-import com.project4.DailyTask.domain.user.entity.Status;
-import com.project4.DailyTask.domain.user.entity.User;
-import com.project4.DailyTask.domain.user.entity.UserRole;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
-import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -73,12 +69,14 @@ public class ApiV1TeamService {
             throw new ApiException(ErrorCode.TEAM_NOT_FOUND);
         }
 
-        boolean isOwner = teamMemberRepository.existsByTeamIdAndUserIdAndRole(teamId, user.getId(), Role.OWNER);
+        boolean isOwner = teamMemberRepository.existsByTeamIdAndUserIdAndRoleAndTeamStatus(teamId, user.getId(), Role.OWNER, TeamStatus.JOINED);
         if (!isOwner) {
             throw new ApiException(ErrorCode.ADMIN_AUTH_REQUIRED);
         }
 
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(dto.expiresInHours());
+
+        teamInviteCodeRepository.deleteByTeamId(teamId);
 
         TeamInviteCode inviteCode = TeamInviteCode.builder()
                 .code(UUID.randomUUID().toString().replace("-", ""))
@@ -93,4 +91,166 @@ public class ApiV1TeamService {
                 inviteCode.getExpiresAt()
         );
     }
+
+    public List<GetTeamRes> getTeam(SecurityUser user) {
+
+        List<TeamMember> teamMemberList = teamMemberRepository
+                .findAllByUserIdWithTeamMembers(user.getId());
+
+        return teamMemberList.stream()
+                .map(teamMember -> {
+                    Team team = teamMember.getTeam();
+
+
+                    long memberCount = team.getTeamMembers().stream()
+                            .filter(tm -> tm.getTeamStatus() == TeamStatus.JOINED)
+                            .count();
+
+                    return GetTeamRes.builder()
+                            .teamId(team.getId())
+                            .name(team.getName())
+                            .memberCount((int) memberCount)
+                            .build();
+                })
+                .toList();
+    }
+
+    @Transactional
+    public JoinTeamResponse joinTeam(JoinTeamRequest dto, SecurityUser user) {
+
+        TeamInviteCode inviteCode = teamInviteCodeRepository.findByCode(dto.getInviteCode())
+                .orElseThrow(() -> new ApiException(ErrorCode.CODE_NOT_FOUND));
+
+        Team team = inviteCode.getTeam();
+
+        if (inviteCode.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ApiException(ErrorCode.INVITE_CODE_EXPIRED);
+        }
+
+        Optional<TeamMember> optionalMember =
+                teamMemberRepository.findByTeamIdAndUserId(team.getId(), user.getId());
+
+        if (optionalMember.isPresent()) {
+            TeamMember oldMember = optionalMember.get();
+
+            if (oldMember.getTeamStatus() == TeamStatus.JOINED) {
+                throw new ApiException(ErrorCode.ALREADY_TEAM_MEMBER);
+            }
+
+            oldMember.setTeamStatus(TeamStatus.JOINED);
+            oldMember.setJoinedAt(LocalDateTime.now());
+            oldMember.setLeftAt(null);
+
+            return new JoinTeamResponse(
+                    team.getId(),
+                    team.getName(),
+                    oldMember.getRole()
+            );
+        }
+
+        TeamMember newMember = new TeamMember();
+        newMember.setTeam(team);
+        newMember.setUser(userRepository.getReferenceById(user.getId()));
+        newMember.setRole(Role.MEMBER);
+        newMember.setTeamStatus(TeamStatus.JOINED);
+        newMember.setJoinedAt(LocalDateTime.now());
+
+        teamMemberRepository.save(newMember);
+
+        return new JoinTeamResponse(
+                team.getId(),
+                team.getName(),
+                newMember.getRole()
+        );
+    }
+
+
+    @Transactional
+    public UpdateTeamRes updateTeam(Long teamId, SecurityUser user, UpdateTeamReq req){
+
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndRoleAndTeamStatus(teamId, Role.OWNER, TeamStatus.JOINED)
+                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+
+        if (!user.getId().equals(teamMember.getUser().getId())){
+            throw new ApiException(ErrorCode.ONLY_OWNER_CAN_UPDATE);
+        }
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        team.setName(req.getName());
+        team.setDescription(req.getDescription());
+
+        return new UpdateTeamRes(
+                team.getId(),
+                team.getName(),
+                team.getDescription(),
+                team.getUpdatedAt()
+        );
+
+    }
+
+    @Transactional
+    public void leftTeam(Long teamId, SecurityUser user) {
+
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
+                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+
+        if (teamMember.getRole() == Role.OWNER) {
+            throw new ApiException(ErrorCode.OWNER_CANNOT_LEAVE);
+        }
+
+        teamMember.setTeamStatus(TeamStatus.LEFT);
+    }
+
+    public List<TeamMemberListRes> getTeamMembers(Long teamId, SecurityUser user) {
+
+        boolean isMember = teamMemberRepository.existsByTeamIdAndUserIdAndTeamStatus(teamId, user.getId(),TeamStatus.JOINED);
+        if (!isMember) {
+            throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND);
+        }
+
+        List<TeamMember> teamMembers = teamMemberRepository.findAllByTeamIdAndStatusWithUser(teamId,TeamStatus.JOINED);
+
+        return teamMembers.stream()
+                .map(teamMember -> new TeamMemberListRes(
+                        teamMember.getId(),
+                        teamMember.getUser().getId(),
+                        teamMember.getUser().getNickname(),
+                        teamMember.getUser().getEmail(),
+                        teamMember.getRole()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public void deleteMember(Long teamId, SecurityUser user, Long memberId) {
+
+        if (!teamRepository.existsById(teamId)) {
+            throw new ApiException(ErrorCode.TEAM_NOT_FOUND);
+        }
+
+        boolean isOwner = teamMemberRepository
+                .existsByTeamIdAndUserIdAndRoleAndTeamStatus(teamId, user.getId(), Role.OWNER, TeamStatus.JOINED);
+
+        if (!isOwner) {
+            throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE);
+        }
+
+        boolean isTargetMember = teamMemberRepository
+                .existsByTeamIdAndUserIdAndTeamStatus(teamId, memberId, TeamStatus.JOINED);
+
+        if (!isTargetMember) {
+            throw new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND);
+        }
+
+        if (memberId.equals(user.getId())) {
+            throw new ApiException(ErrorCode.OWNER_CANNOT_LEAVE);
+        }
+
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, memberId)
+                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+        teamMember.setTeamStatus(TeamStatus.LEFT);
+    }
+
 }
