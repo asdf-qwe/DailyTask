@@ -1,0 +1,27 @@
+app:
+  http:
+    logging:
+      enabled: true
+      slow-threshold-ms: 300
+      include-query-string: true
+      exclude-path-prefixes:
+        - /actuator
+        - /swagger
+        - /v3/api-docs
+        - /favicon.ico
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true
+
+logging:
+  level:
+    com.dd.blog: INFO
+
+    org.hibernate.SQL: OFF
+    org.hibernate.orm.jdbc.bind: OFF
+    org.hibernate.orm.jdbc.extract: OFF
+
+    org.springframework.transaction.interceptor: INFO

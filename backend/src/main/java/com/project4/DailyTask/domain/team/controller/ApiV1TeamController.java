@@ -2,6 +2,7 @@ package com.project4.DailyTask.domain.team.controller;
 
 import com.project4.DailyTask.domain.team.dto.*;
 import com.project4.DailyTask.domain.team.service.ApiV1TeamService;
+import com.project4.DailyTask.domain.team.service.TeamPerfService;
 import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,15 @@ import java.util.List;
 @RequestMapping("api/v1/teams")
 public class ApiV1TeamController {
     private final ApiV1TeamService teamService;
+    private final TeamPerfService teamPerfService;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<GetTeamRes>>> getTeam(@AuthenticationPrincipal SecurityUser user){
+
+        List<GetTeamRes> res = teamService.getTeam(user);
+
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<CreateTeamResponse>> createTeam(@RequestBody CreateTeamRequest dto,
@@ -78,5 +88,15 @@ public class ApiV1TeamController {
         teamService.deleteMember(teamId,user,userId);
 
         return ResponseEntity.ok(ApiResponse.ok(true));
+    }
+
+    @GetMapping("/nplus1")
+    public List<TeamListRes> teamsNPlusOne() {
+        return teamPerfService.listTeamsNPlusOne();
+    }
+
+    @GetMapping("/fetch-join")
+    public List<TeamListRes> teamsFetchJoin() {
+        return teamPerfService.listTeamsFetchJoin();
     }
 }

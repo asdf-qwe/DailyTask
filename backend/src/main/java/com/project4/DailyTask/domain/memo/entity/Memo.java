@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Getter@Setter
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SuperBuilder
 public class Memo extends BaseEntity {
@@ -34,16 +34,22 @@ public class Memo extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Visibility visibility = Visibility.PRIVATE;
 
-    @OneToMany(mappedBy = "memo", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<MemoImage> images = new ArrayList<>();
+    public void update(String title, String content, Boolean sharedToTeam) {
+        if (title != null) changeTitle(title);
+        if (content != null) changeContent(content);
+        if (sharedToTeam != null) changeVisibility(sharedToTeam ? Visibility.TEAM : Visibility.PRIVATE);
+    }
 
-    public void addImage(String imageUrl) {
-        MemoImage image = MemoImage.builder()
-                .memo(this)
-                .imageUrl(imageUrl)
-                .build();
-        images.add(image);
+    public void changeTitle(String title) {
+        this.title = title;
+    }
+
+    public void changeContent(String content) {
+        this.content = content;
+    }
+
+    public void changeVisibility(Visibility visibility) {
+        this.visibility = visibility;
     }
 
 }

@@ -1,6 +1,5 @@
 package com.project4.DailyTask.team;
 
-import com.project4.DailyTask.domain.memo.dtio.UpdateMemoReq;
 import com.project4.DailyTask.domain.team.dto.CreateInviteCodeRequest;
 import com.project4.DailyTask.domain.team.dto.CreateTeamRequest;
 import com.project4.DailyTask.domain.team.dto.JoinTeamRequest;
@@ -161,7 +160,7 @@ public class TeamServiceUnitTest {
 
         UpdateTeamReq req = new UpdateTeamReq("test2", "desc2");
 
-        when(teamMemberRepository.findByTeamIdAndRole(team.getId(), Role.OWNER))
+        when(teamMemberRepository.findByTeamIdAndRoleAndTeamStatus(team.getId(), Role.OWNER,teamMember.getTeamStatus()))
                 .thenReturn(Optional.of(teamMember));
         when(teamRepository.findById(team.getId()))
                 .thenReturn(Optional.ofNullable(team));

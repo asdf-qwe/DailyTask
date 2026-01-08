@@ -1,8 +1,7 @@
 package com.project4.DailyTask.memo;
 
-import com.project4.DailyTask.domain.memo.dtio.CreateMemoReq;
+import com.project4.DailyTask.domain.memo.dto.CreateMemoReq;
 import com.project4.DailyTask.domain.memo.entity.Memo;
-import com.project4.DailyTask.domain.memo.entity.MemoImage;
 import com.project4.DailyTask.domain.memo.entity.Visibility;
 import com.project4.DailyTask.domain.memo.repository.MemoImageRepository;
 import com.project4.DailyTask.domain.memo.repository.MemoRepository;

@@ -5,7 +5,7 @@ spring:
     ansi:
       enabled: ALWAYS
   profiles:
-    active: dev
+    active: dev,perf
   config:
     import: optional:application-secret.yml
   datasource:
@@ -51,3 +51,11 @@ custom:
     cookieDomain: "${custom.dev.cookieDomain}"
     frontUrl: "${custom.dev.frontUrl}"
     backUrl: "${custom.dev.backUrl}"
+
+  aws:
+    region: ap-northeast-2
+    s3:
+      bucket: your-private-bucket-name
+    presign:
+      put-minutes: 10
+      get-minutes: 5

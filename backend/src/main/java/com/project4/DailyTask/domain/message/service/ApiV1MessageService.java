@@ -3,7 +3,6 @@ package com.project4.DailyTask.domain.message.service;
 
 import com.project4.DailyTask.domain.channel.entity.Channel;
 import com.project4.DailyTask.domain.channel.repository.ChannelRepository;
-import com.project4.DailyTask.domain.memo.dtio.MemoRes;
 import com.project4.DailyTask.domain.message.dto.MessageRes;
 import com.project4.DailyTask.domain.message.dto.SendMessageDto;
 import com.project4.DailyTask.domain.message.entity.Message;
@@ -11,7 +10,6 @@ import com.project4.DailyTask.domain.message.repository.MessageRepository;
 import com.project4.DailyTask.domain.notification.entity.NotificationType;
 import com.project4.DailyTask.domain.notification.service.ApiV1NotificationService;
 import com.project4.DailyTask.domain.team.entity.Team;
-import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.domain.user.entity.Status;
 import com.project4.DailyTask.domain.user.entity.User;

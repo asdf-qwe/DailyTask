@@ -13,5 +13,6 @@ import java.util.List;
 public class ChannelListRes {
     private Long id;
     private String name;
+    private String teamName;
     private LocalDateTime createdAt;
 }

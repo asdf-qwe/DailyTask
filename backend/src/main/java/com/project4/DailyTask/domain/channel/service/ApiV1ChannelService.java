@@ -56,6 +56,7 @@ public class ApiV1ChannelService {
                 .map(channel -> ChannelListRes.builder()
                         .id(channel.getId())
                         .name(channel.getName())
+                        .teamName(channel.getTeam().getName())
                         .createdAt(channel.getCreatedAt())
                         .build())
                 .toList();

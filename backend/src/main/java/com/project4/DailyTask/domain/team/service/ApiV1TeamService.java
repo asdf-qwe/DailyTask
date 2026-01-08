@@ -92,6 +92,29 @@ public class ApiV1TeamService {
         );
     }
 
+    public List<GetTeamRes> getTeam(SecurityUser user) {
+
+        List<TeamMember> teamMemberList = teamMemberRepository
+                .findAllByUserIdWithTeamMembers(user.getId());
+
+        return teamMemberList.stream()
+                .map(teamMember -> {
+                    Team team = teamMember.getTeam();
+
+
+                    long memberCount = team.getTeamMembers().stream()
+                            .filter(tm -> tm.getTeamStatus() == TeamStatus.JOINED)
+                            .count();
+
+                    return GetTeamRes.builder()
+                            .teamId(team.getId())
+                            .name(team.getName())
+                            .memberCount((int) memberCount)
+                            .build();
+                })
+                .toList();
+    }
+
     @Transactional
     public JoinTeamResponse joinTeam(JoinTeamRequest dto, SecurityUser user) {
 

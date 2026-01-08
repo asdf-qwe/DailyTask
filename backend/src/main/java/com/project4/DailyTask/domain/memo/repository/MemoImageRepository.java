@@ -1,6 +1,5 @@
 package com.project4.DailyTask.domain.memo.repository;
 
-import com.project4.DailyTask.domain.memo.entity.MemoImage;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

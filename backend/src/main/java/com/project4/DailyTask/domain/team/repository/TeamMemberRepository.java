@@ -1,6 +1,7 @@
 package com.project4.DailyTask.domain.team.repository;
 
 import com.project4.DailyTask.domain.team.entity.Role;
+import com.project4.DailyTask.domain.team.entity.Team;
 import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.entity.TeamStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,7 +34,17 @@ where tm.team.id = :teamId
        """)
     List<TeamMember> findAllByTeamIdWithUser(@Param("teamId") Long teamId);
 
+
     void deleteByTeamIdAndUserId(Long teamId, Long userId);
 
     boolean existsByTeamIdAndUserId(Long teamId, Long userId);
+
+    List<TeamMember> findAllByUserId(Long userId);
+
+    @Query("SELECT tm FROM TeamMember tm " +
+            "JOIN FETCH tm.team t " +
+            "LEFT JOIN FETCH t.teamMembers " +
+            "WHERE tm.user.id = :userId " +
+            "AND tm.teamStatus = 'JOINED'")
+    List<TeamMember> findAllByUserIdWithTeamMembers(@Param("userId") Long userId);
 }
