@@ -54,6 +54,8 @@ public class ApiV1MessageService {
                 .channel(channel)
                 .user(sender)
                 .content(dto.getContent())
+                .authorNicknameSnapshot(sender.getNickname())
+                .authorIdSnapshot(sender.getId())
                 .build();
 
         messageRepository.save(message);
@@ -68,8 +70,8 @@ public class ApiV1MessageService {
                     receiverIds,
                     NotificationType.CHANNEL_MESSAGE,
                     user.getNickname() + "님이 메시지를 보냈습니다.",
-                    null,           // relatedMemoId
-                    team.getId()     // relatedTeamId
+                    null,
+                    team.getId()
             );
         }
 
@@ -97,14 +99,31 @@ public class ApiV1MessageService {
         }
 
         return messageRepository.findByChannelOrderByCreatedAtDesc(channel, PageRequest.of(0, 50)).stream()
-                .map(entity-> MessageRes.builder()
-                        .id(entity.getId())
-                        .channelId(channelId)
-                        .author(new MessageRes.Author(entity.getUser().getId(),
-                                entity.getUser().getNickname()))
-                        .content(entity.getContent())
-                        .createdAt(entity.getCreatedAt())
-                        .build())
+                .map(entity -> {
+                    var u = entity.getUser();
+
+                    Long authorId;
+                    String authorName;
+
+                    if (u == null) {
+                        authorId = entity.getAuthorIdSnapshot(); // null일 수도 있음
+                        authorName = entity.getAuthorNicknameSnapshot(); // or "알 수 없음"
+                    } else if (u.getStatus() == Status.DELETED) {
+                        authorId = entity.getAuthorIdSnapshot();
+                        authorName = "탈퇴한 사용자";
+                    } else {
+                        authorId = u.getId();
+                        authorName = u.getNickname();
+                    }
+
+                    return MessageRes.builder()
+                            .id(entity.getId())
+                            .channelId(channelId)
+                            .author(new MessageRes.Author(authorId, authorName))
+                            .content(entity.getContent())
+                            .createdAt(entity.getCreatedAt())
+                            .build();
+                })
                 .toList();
     }
 

@@ -1,5 +1,6 @@
 package com.project4.DailyTask.global.rq;
 
+import com.project4.DailyTask.domain.user.entity.Status;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.service.AuthLoginService;
 import com.project4.DailyTask.domain.user.service.AuthTokenService;
@@ -7,6 +8,8 @@ import com.project4.DailyTask.domain.user.service.UserService;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
+import io.jsonwebtoken.JwtException;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,12 +42,22 @@ public class Rq {
     @Value("${custom.site.cookie.sameSite}")
     private String cookieSameSite;
 
-    public User getUserFromAccessToken(String accessToken){
+    public User getUserFromAccessToken(String accessToken) {
         try {
-            return authLoginService.getUserFromAccessToken(accessToken);
-        } catch (Exception e){
-            return null;
+            User user = authLoginService.getUserFromAccessToken(accessToken);
+
+            if (user.getStatus() == Status.DELETED) {
+                throw new ApiException(ErrorCode.WITHDRAW_USER);
+            }
+
+            return user;
+
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.INVALID_TOKEN);
         }
+
     }
 
     public void setLogin(User user){
@@ -133,7 +146,7 @@ public class Rq {
 
     public void refreshAccessToken(User user){
         String newToken = authTokenService.genAccessToken(user);
-        setHeader("Authorization", "Bearer" + newToken);
+        setHeader("Authorization", "Bearer " + newToken);
         setCookie("accessToken", newToken);
     }
 

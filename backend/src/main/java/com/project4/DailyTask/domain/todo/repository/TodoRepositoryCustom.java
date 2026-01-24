@@ -4,11 +4,10 @@ import com.project4.DailyTask.domain.todo.entity.Todo;
 import com.project4.DailyTask.domain.todo.entity.TodoStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 
-public interface TodoRepository extends JpaRepository<Todo, Long>, TodoRepositoryCustom {
+public interface TodoRepositoryCustom {
+    Page<Todo> searchMyTodos(Long userId, LocalDate date, TodoStatus status, Pageable pageable);
+    Page<Todo> searchTeamTodos(Long teamId, LocalDate date, TodoStatus status, Pageable pageable);
 }

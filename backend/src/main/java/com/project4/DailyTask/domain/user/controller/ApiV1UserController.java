@@ -10,11 +10,13 @@ import com.project4.DailyTask.domain.user.service.UserService;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.rq.Rq;
+import com.project4.DailyTask.global.security.auth.SecurityUser;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -107,5 +109,11 @@ public class ApiV1UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.ok("서버 에러 발생: " + e.getMessage()));
         }
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<String>> withDraw(@AuthenticationPrincipal SecurityUser user){
+        userService.withdraw(user);
+        return ResponseEntity.ok(ApiResponse.ok("탈퇴 요청이 처리되었습니다."));
     }
 }

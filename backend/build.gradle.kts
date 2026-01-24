@@ -35,11 +35,11 @@ dependencies {
 	testImplementation("org.springframework.security:spring-security-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-	// db관련 (중복이라면 한 번만 두는 걸 추천)
+	// db관련
 	runtimeOnly("com.mysql:mysql-connector-j")
 
 	// swagger
-	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1")
 
 	// JWT & JSON
 	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
@@ -61,6 +61,30 @@ dependencies {
 	implementation(platform("software.amazon.awssdk:bom:2.25.50"))
 	implementation("software.amazon.awssdk:s3")
 	implementation("software.amazon.awssdk:sts")
+
+	// Querydsl (Spring Boot 3+/Jakarta)
+	implementation("com.querydsl:querydsl-jpa:5.0.0:jakarta")
+	annotationProcessor("com.querydsl:querydsl-apt:5.0.0:jakarta")
+
+	// Q 클래스 생성 안정화(환경에 따라 필요)
+	annotationProcessor("jakarta.annotation:jakarta.annotation-api")
+	annotationProcessor("jakarta.persistence:jakarta.persistence-api")
+}
+
+
+// Querydsl generated sources 경로 등록
+val generated = file("build/generated/sources/annotationProcessor/java/main")
+
+sourceSets {
+	main {
+		java {
+			srcDir(generated)
+		}
+	}
+}
+
+tasks.withType<JavaCompile> {
+	options.generatedSourceOutputDirectory.set(generated)
 }
 
 tasks.withType<Test> {

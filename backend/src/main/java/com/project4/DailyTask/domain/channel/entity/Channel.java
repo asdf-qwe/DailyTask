@@ -26,7 +26,7 @@ public class Channel extends BaseEntity {
     @Column(name = "name", nullable = false, length = 30)
     private String name;
 
-    @OneToMany(mappedBy = "channel", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "channel")
     private List<Message> messages = new ArrayList<>();
 
 }

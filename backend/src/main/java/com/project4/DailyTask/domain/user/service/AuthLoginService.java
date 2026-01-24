@@ -2,6 +2,7 @@ package com.project4.DailyTask.domain.user.service;
 
 import com.project4.DailyTask.domain.user.dto.LoginRequestDto;
 import com.project4.DailyTask.domain.user.dto.TokenResponseDto;
+import com.project4.DailyTask.domain.user.entity.Status;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.entity.UserRole;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
@@ -38,6 +39,10 @@ public class AuthLoginService {
 
         if(!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             throw new ApiException(ErrorCode.INVALID_PASSWORD);
+        }
+
+        if (user.getStatus() == Status.DELETED) {
+            throw new ApiException(ErrorCode.WITHDRAW_USER);
         }
 
         String accessToken = authTokenService.genAccessToken(user);

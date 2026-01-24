@@ -18,12 +18,14 @@ public enum ErrorCode {
     TODO_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "제목이 없어 TODO를 생성할 수 없습니다."),
     FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "업로드 할 파일 용량이 초과되었습니다."),
     ALREADY_TEAM_MEMBER(HttpStatus.BAD_REQUEST, "중복 초대입니다."),
+    UNSUPPORTED_SORT(HttpStatus.BAD_REQUEST, "지원되지 않는 정렬입니다."),
 
     // 401 UNAUTHORIZED (인증 필요)
     ADMIN_AUTH_REQUIRED(HttpStatus.UNAUTHORIZED, "관리자 인증이 필요합니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     INVALID_LOGIN_ID(HttpStatus.UNAUTHORIZED, "아이디가 올바르지 않습니다."),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다."),
+    WITHDRAW_USER(HttpStatus.UNAUTHORIZED, "탈퇴한 유저입니다."),
 
     // 403 FORBIDDEN (권한 없음)
     ADMIN_PERMISSION_REQUIRED(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다."),
