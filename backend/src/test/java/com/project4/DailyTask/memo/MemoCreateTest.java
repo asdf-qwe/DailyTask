@@ -3,7 +3,6 @@ package com.project4.DailyTask.memo;
 import com.project4.DailyTask.domain.memo.dto.CreateMemoReq;
 import com.project4.DailyTask.domain.memo.entity.Memo;
 import com.project4.DailyTask.domain.memo.entity.Visibility;
-import com.project4.DailyTask.domain.memo.repository.MemoImageRepository;
 import com.project4.DailyTask.domain.memo.repository.MemoRepository;
 import com.project4.DailyTask.domain.memo.service.ApiV1MemoService;
 import com.project4.DailyTask.domain.team.entity.Role;
@@ -39,14 +38,11 @@ public class MemoCreateTest {
     private UserRepository userRepository;
     @Mock
     private TeamMemberRepository teamMemberRepository;
-    @Mock
-    private MemoImageRepository memoImageRepository;
     @InjectMocks
     private ApiV1MemoService memoService;
     @Captor
     private ArgumentCaptor<Memo> memoArgumentCaptor;
-    @Captor
-    private ArgumentCaptor<MemoImage> memoImageArgumentCaptor;
+
 
     private SecurityUser loginUser;
     private Team team;
@@ -70,7 +66,6 @@ public class MemoCreateTest {
                 .email("user@test.com")
                 .password("encodedPassword")
                 .nickname("Hyun")
-                .profile_url(null)
                 .status(Status.ACTIVE)
                 .role(UserRole.ADMIN)
                 .build();
@@ -90,7 +85,7 @@ public class MemoCreateTest {
         List<String> urls = new ArrayList<>();
         urls.add("asd");
         urls.add("zcx");
-        req = new CreateMemoReq("test","test1",urls, true);
+        req = new CreateMemoReq("test","test1", true);
 
     }
 
@@ -111,14 +106,7 @@ public class MemoCreateTest {
 
         assertEquals(Visibility.TEAM, saved.getVisibility());
 
-        assertEquals(req.getImageUrls().size(), saved.getImages().size());
 
-        List<String> savedUrls = saved.getImages()
-                .stream()
-                .map(MemoImage::getImageUrl)
-                .toList();
-
-        assertTrue(savedUrls.containsAll(req.getImageUrls()));
     }
 
 }

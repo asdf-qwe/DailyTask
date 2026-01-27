@@ -4,6 +4,7 @@ import com.project4.DailyTask.domain.todo.dto.*;
 import com.project4.DailyTask.domain.todo.service.ApiV1TodoService;
 import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,7 +22,7 @@ public class ApiV1TodoController {
 
 
     @PostMapping("/todos/my")
-    public ResponseEntity<ApiResponse<CreateTodoRes>> createTodo(@RequestBody CreateTodoReq req,
+    public ResponseEntity<ApiResponse<CreateTodoRes>> createTodo(@Valid @RequestBody CreateTodoReq req,
                                                                  @AuthenticationPrincipal SecurityUser user){
         CreateTodoRes res = todoService.createTodo(user, req);
 

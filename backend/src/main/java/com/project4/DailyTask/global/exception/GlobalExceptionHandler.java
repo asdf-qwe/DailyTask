@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
         log.warn("API_EX method={} uri={} errorCode={} status={} msg={}",
                 req.getMethod(),
                 req.getRequestURI(),
-                code.name(),                 // enum 이름을 코드로 사용
+                code.name(),
                 code.getHttpStatus().value(),
                 code.getMessage()
         );

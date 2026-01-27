@@ -7,10 +7,13 @@ import com.project4.DailyTask.domain.user.entity.UserRole;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
+import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -51,4 +54,20 @@ public class UserService {
         return userRepository.findById(id)
                 .orElseThrow(()-> new ApiException(ErrorCode.USER_NOT_FOUND));
     }
+
+    @Transactional
+    public void withdraw(SecurityUser securityUser) {
+        User user = findById(securityUser.getId());
+
+        if (user.getStatus() == Status.DELETED) {
+            return;
+        }
+
+        user.setStatus(Status.DELETED);
+        user.setDeletedAt(LocalDateTime.now());
+
+
+        user.setRefreshToken(null);
+    }
+
 }

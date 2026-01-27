@@ -9,6 +9,7 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Getter@Setter
@@ -30,4 +31,18 @@ public class TeamInviteCode extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;
+
+    public static TeamInviteCode createCode(LocalDateTime expiresAt, Team team){
+        TeamInviteCode teamInviteCode = new TeamInviteCode();
+        teamInviteCode.code = UUID.randomUUID().toString().replace("-","");
+        teamInviteCode.expiresAt = expiresAt;
+        teamInviteCode.team = team;
+        return teamInviteCode;
+    }
+
+    public boolean isExpired(LocalDateTime now) {
+        return expiresAt.isBefore(now);
+    }
+
+
 }

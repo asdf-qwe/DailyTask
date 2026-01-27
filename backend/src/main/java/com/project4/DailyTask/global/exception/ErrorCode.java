@@ -12,18 +12,22 @@ public enum ErrorCode {
     TEAM_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "팀 이름이 없습니다."),
     INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "잘못된 초대 코드입니다."),
     INVALID_USER_EMAIL(HttpStatus.BAD_REQUEST, "잘못된 이메일 형식입니다."),
-    OWNER_CANNOT_LEAVE(HttpStatus.BAD_REQUEST, "관리자는 팀 탈퇴를 할 수 없습니다."),
+    CANNOT_KICK_SELF(HttpStatus.BAD_REQUEST, "관리자는 팀 탈퇴를 할 수 없습니다."),
     MEMO_REQUIRED_FIELDS(HttpStatus.BAD_REQUEST, "메모 생성시 필수값이 누락되었습니다."),
     MEMO_NOT_FOUND_FOR_COMMENT(HttpStatus.BAD_REQUEST, "메모가 없어 댓글을 달 수 없습니다."),
     TODO_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "제목이 없어 TODO를 생성할 수 없습니다."),
     FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "업로드 할 파일 용량이 초과되었습니다."),
     ALREADY_TEAM_MEMBER(HttpStatus.BAD_REQUEST, "중복 초대입니다."),
+    UNSUPPORTED_SORT(HttpStatus.BAD_REQUEST, "지원되지 않는 정렬입니다."),
+    TODO_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "TODO 제목이 너무 깁니다."),
+    TEAM_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "팀 이름이 너무 깁니다."),
 
     // 401 UNAUTHORIZED (인증 필요)
     ADMIN_AUTH_REQUIRED(HttpStatus.UNAUTHORIZED, "관리자 인증이 필요합니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     INVALID_LOGIN_ID(HttpStatus.UNAUTHORIZED, "아이디가 올바르지 않습니다."),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다."),
+    WITHDRAW_USER(HttpStatus.UNAUTHORIZED, "탈퇴한 유저입니다."),
 
     // 403 FORBIDDEN (권한 없음)
     ADMIN_PERMISSION_REQUIRED(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다."),

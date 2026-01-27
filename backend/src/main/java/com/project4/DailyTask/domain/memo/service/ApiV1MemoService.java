@@ -3,15 +3,11 @@ package com.project4.DailyTask.domain.memo.service;
 import com.project4.DailyTask.domain.memo.dto.*;
 import com.project4.DailyTask.domain.memo.entity.Memo;
 import com.project4.DailyTask.domain.memo.entity.Visibility;
-import com.project4.DailyTask.domain.memo.repository.MemoImageRepository;
 import com.project4.DailyTask.domain.memo.repository.MemoRepository;
 import com.project4.DailyTask.domain.team.entity.Role;
-import com.project4.DailyTask.domain.team.entity.Team;
 import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
-import com.project4.DailyTask.domain.team.repository.TeamRepository;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
-import com.project4.DailyTask.global.S3.S3PresignService;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
@@ -35,7 +31,7 @@ public class ApiV1MemoService {
     @Transactional
     public CreateMemoRes createMemo(Long teamId, SecurityUser user, CreateMemoReq req) {
 
-        if (req.getTitle() == null || req.getTitle().trim().isEmpty()) {
+        if (req.title() == null || req.title().trim().isEmpty()) {
             throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
         }
 
@@ -43,15 +39,15 @@ public class ApiV1MemoService {
                 .findByTeamIdAndUserId(teamId, user.getId())
                 .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
 
-        Visibility visibility = Boolean.TRUE.equals(req.getSharedToTeam())
+        Visibility visibility = Boolean.TRUE.equals(req.sharedToTeam())
                 ? Visibility.TEAM
                 : Visibility.PRIVATE;
 
         Memo memo = Memo.builder()
                 .user(userRepository.getReferenceById(user.getId()))
                 .team(teamMember.getTeam())
-                .title(req.getTitle())
-                .content(req.getContent())
+                .title(req.title())
+                .content(req.content())
                 .visibility(visibility)
                 .build();
 
@@ -62,7 +58,7 @@ public class ApiV1MemoService {
                 teamMember.getTeam().getId(),
                 memo.getTitle(),
                 memo.getContent(),
-                req.getSharedToTeam(),
+                req.sharedToTeam(),
                 new CreateMemoRes.Author(user.getId(), user.getNickname()),
                 memo.getCreatedAt()
         );
@@ -147,9 +143,9 @@ public class ApiV1MemoService {
         }
 
         memo.update(
-                req.getTitle(),
-                req.getContent(),
-                req.getSharedToTeam()
+                req.title(),
+                req.content(),
+                req.sharedToTeam()
         );
 
         return new UpdateMemoRes(

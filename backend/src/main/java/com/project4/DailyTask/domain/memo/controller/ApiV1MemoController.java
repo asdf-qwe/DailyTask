@@ -2,7 +2,7 @@ package com.project4.DailyTask.domain.memo.controller;
 
 import com.project4.DailyTask.domain.memo.dto.*;
 import com.project4.DailyTask.domain.memo.service.ApiV1MemoService;
-import com.project4.DailyTask.global.S3.S3PresignService;
+//import com.project4.DailyTask.global.S3.S3PresignService;
 import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class ApiV1MemoController {
 
     private final ApiV1MemoService memoService;
-    private final S3PresignService s3PresignService;
+//    private final S3PresignService s3PresignService;
 
     @PostMapping("/teams/{teamId}/memos")
     public ResponseEntity<ApiResponse<CreateMemoRes>> createMemo(@PathVariable Long teamId,
@@ -73,22 +73,22 @@ public class ApiV1MemoController {
         return ResponseEntity.ok(ApiResponse.ok(true));
     }
 
-    @PostMapping("/uploads/presign")
-    public ResponseEntity<ApiResponse<PresignUploadRes>> presign(
-            @AuthenticationPrincipal SecurityUser user,
-            @RequestBody PresignUploadReq req
-    ) {
-
-        String ext = (req.getExtension() == null || req.getExtension().isBlank()) ? "bin" : req.getExtension().trim();
-        String key = "team/" + req.getTeamId()
-                + "/memo/"
-                + java.time.LocalDate.now()
-                + "/" + java.util.UUID.randomUUID()
-                + "." + ext;
-
-        var result = s3PresignService.presignPut(key, req.getContentType());
-
-        return ResponseEntity.ok(ApiResponse.ok(new PresignUploadRes(result.key(), result.uploadUrl())));
-    }
+//    @PostMapping("/uploads/presign")
+//    public ResponseEntity<ApiResponse<PresignUploadRes>> presign(
+//            @AuthenticationPrincipal SecurityUser user,
+//            @RequestBody PresignUploadReq req
+//    ) {
+//
+//        String ext = (req.getExtension() == null || req.getExtension().isBlank()) ? "bin" : req.getExtension().trim();
+//        String key = "team/" + req.getTeamId()
+//                + "/memo/"
+//                + java.time.LocalDate.now()
+//                + "/" + java.util.UUID.randomUUID()
+//                + "." + ext;
+//
+//        var result = s3PresignService.presignPut(key, req.getContentType());
+//
+//        return ResponseEntity.ok(ApiResponse.ok(new PresignUploadRes(result.key(), result.uploadUrl())));
+//    }
 
 }

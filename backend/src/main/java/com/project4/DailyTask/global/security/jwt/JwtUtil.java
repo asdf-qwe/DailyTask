@@ -3,6 +3,7 @@ package com.project4.DailyTask.global.security.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,10 +23,9 @@ public class JwtUtil {
 
     @PostConstruct
     public void init() {
-        byte[] keyBytes = rawSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+        byte[] decoded = Decoders.BASE64.decode(rawSecret);
+        this.secretKey = Keys.hmacShaKeyFor(decoded);
     }
-
 
     public String generateToken(long expiresSecond, Map<String, Object> claims){
         Date now = new Date();

@@ -27,4 +27,9 @@ public class Message extends BaseEntity {
     @Column(name = "content", nullable = false, length = 2000)
     private String content;
 
+    @Column(name = "author_nickname_snapshot", nullable = false, length = 100)
+    private String authorNicknameSnapshot;
+
+    @Column(name = "author_id_snapshot")
+    private Long authorIdSnapshot;
 }

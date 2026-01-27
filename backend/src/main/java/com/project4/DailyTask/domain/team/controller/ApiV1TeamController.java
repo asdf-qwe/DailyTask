@@ -6,6 +6,7 @@ import com.project4.DailyTask.domain.team.service.TeamPerfService;
 import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@Profile("perf")
 @RequestMapping("api/v1/teams")
 public class ApiV1TeamController {
     private final ApiV1TeamService teamService;
@@ -80,7 +82,7 @@ public class ApiV1TeamController {
         return ResponseEntity.ok(ApiResponse.ok(memberListRes));
     }
 
-    @PatchMapping("/{teamId}/members/{memberId}")
+    @PatchMapping("/{teamId}/members/{userId}")
     public ResponseEntity<ApiResponse<Boolean>> deleteMember(@PathVariable Long teamId,
                                                              @PathVariable Long userId,
                                                              @AuthenticationPrincipal SecurityUser user){
