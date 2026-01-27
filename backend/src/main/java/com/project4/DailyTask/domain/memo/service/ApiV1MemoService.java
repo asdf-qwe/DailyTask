@@ -31,7 +31,7 @@ public class ApiV1MemoService {
     @Transactional
     public CreateMemoRes createMemo(Long teamId, SecurityUser user, CreateMemoReq req) {
 
-        if (req.getTitle() == null || req.getTitle().trim().isEmpty()) {
+        if (req.title() == null || req.title().trim().isEmpty()) {
             throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
         }
 
@@ -39,15 +39,15 @@ public class ApiV1MemoService {
                 .findByTeamIdAndUserId(teamId, user.getId())
                 .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
 
-        Visibility visibility = Boolean.TRUE.equals(req.getSharedToTeam())
+        Visibility visibility = Boolean.TRUE.equals(req.sharedToTeam())
                 ? Visibility.TEAM
                 : Visibility.PRIVATE;
 
         Memo memo = Memo.builder()
                 .user(userRepository.getReferenceById(user.getId()))
                 .team(teamMember.getTeam())
-                .title(req.getTitle())
-                .content(req.getContent())
+                .title(req.title())
+                .content(req.content())
                 .visibility(visibility)
                 .build();
 
@@ -58,7 +58,7 @@ public class ApiV1MemoService {
                 teamMember.getTeam().getId(),
                 memo.getTitle(),
                 memo.getContent(),
-                req.getSharedToTeam(),
+                req.sharedToTeam(),
                 new CreateMemoRes.Author(user.getId(), user.getNickname()),
                 memo.getCreatedAt()
         );
@@ -143,9 +143,9 @@ public class ApiV1MemoService {
         }
 
         memo.update(
-                req.getTitle(),
-                req.getContent(),
-                req.getSharedToTeam()
+                req.title(),
+                req.content(),
+                req.sharedToTeam()
         );
 
         return new UpdateMemoRes(

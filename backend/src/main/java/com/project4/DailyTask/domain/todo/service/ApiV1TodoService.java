@@ -8,6 +8,7 @@ import com.project4.DailyTask.domain.todo.dto.*;
 import com.project4.DailyTask.domain.todo.entity.Todo;
 import com.project4.DailyTask.domain.todo.entity.TodoStatus;
 import com.project4.DailyTask.domain.todo.repository.TodoRepository;
+import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
@@ -32,45 +33,30 @@ public class ApiV1TodoService {
 
     @Transactional
     public CreateTodoRes createTodo(SecurityUser user, CreateTodoReq req) {
+        User ref = userRepository.getReferenceById(user.getId());
 
-        if (req.getTitle() == null || req.getTitle().isBlank()) {
-            throw new ApiException(ErrorCode.TODO_TITLE_REQUIRED);
-        }
-
-        Todo todo = Todo.builder()
-                .user(userRepository.getReferenceById(user.getId()))
-                .title(req.getTitle())
-                .todoStatus(TodoStatus.PENDING)
-                .dueDate(req.getDueDate())
-                .build();
+        Todo todo = Todo.createPersonalTodo(ref, req.title(), req.dueDate());
 
         Todo saved = todoRepository.save(todo);
 
-        return new CreateTodoRes(
-                saved.getId(),
-                saved.getTitle(),
-                saved.getDueDate(),
-                saved.getTodoStatus()
-        );
+        return new CreateTodoRes(saved.getId(), saved.getTitle(), saved.getDueDate(), saved.getTodoStatus());
     }
+
 
     @Transactional
     public CreateTeamTodoRes createTeamTodo(Long teamId, CreateTodoReq req, SecurityUser user) {
 
-        if (req.getTitle() == null || req.getTitle().isBlank()) {
-            throw new ApiException(ErrorCode.TODO_TITLE_REQUIRED);
-        }
-
+        // 권한/소속 검증
         TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
                 .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
 
-        Todo teamTodo = Todo.builder()
-                .user(teamMember.getUser())
-                .team(teamMember.getTeam())
-                .title(req.getTitle())
-                .todoStatus(TodoStatus.PENDING)
-                .dueDate(req.getDueDate())
-                .build();
+        // 엔티티 생성 (도메인 메서드/팩토리 추천)
+        Todo teamTodo = Todo.createTeamTodo(
+                teamMember.getUser(),
+                teamMember.getTeam(),
+                req.title(),
+                req.dueDate()
+        );
 
         Todo saved = todoRepository.save(teamTodo);
 
@@ -144,63 +130,57 @@ public class ApiV1TodoService {
                 .build();
     }
 
-    public UpdateTodoRes updateTodo(Long todoId, SecurityUser user, UpdateTodoReq req){
+    @Transactional
+    public UpdateTodoRes updateTodo(Long todoId, SecurityUser user, UpdateTodoReq req) {
         Todo todo = todoRepository.findById(todoId)
-                .orElseThrow(()-> new ApiException(ErrorCode.TODO_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(ErrorCode.TODO_NOT_FOUND));
 
-        if(todo.getUser().getId().equals(user.getId())){
-            todo.setTitle(req.getTitle());
-            todo.setDueDate(req.getDate());
-            todo.setTodoStatus(req.getStatus());
-            return new UpdateTodoRes(
-                    todo.getId(),
-                    todo.getUpdatedAt()
-            );
-        }
+        validateTodoUpdateAuthority(todo, user.getId());
 
-        Team team = todo.getTeam();
-        if(team == null){
-            throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
-        }
+        todo.applyUpdate(req.title(), req.date(), req.status());
 
-        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(team.getId(), user.getId())
-                .orElseThrow(()-> new ApiException(ErrorCode.ONLY_OWNER_CAN_UPDATE));
-
-        if (teamMember.getRole() != Role.OWNER){
-            throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
-        }
-
-        todo.setTitle(req.getTitle());
-        todo.setDueDate(req.getDate());
-        todo.setTodoStatus(req.getStatus());
-
-        return new UpdateTodoRes(
-                todo.getId(),
-                todo.getUpdatedAt()
-        );
+        return new UpdateTodoRes(todo.getId(), todo.getUpdatedAt());
     }
 
-    public void deleteTodo(Long todoId, SecurityUser user){
+    private void validateTodoUpdateAuthority(Todo todo, Long userId) {
+
+        if (todo.isOwner(userId)) return;
+
+        if (!todo.isTeamTodo()) {
+            throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
+        }
+
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(todo.getTeamId(), userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.ONLY_OWNER_CAN_UPDATE));
+
+        if (!teamMember.isOwner()) {
+            throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
+        }
+    }
+
+    @Transactional
+    public void deleteTodo(Long todoId, SecurityUser user) {
         Todo todo = todoRepository.findById(todoId)
-                .orElseThrow(()-> new ApiException(ErrorCode.TODO_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(ErrorCode.TODO_NOT_FOUND));
 
-        if(todo.getUser().getId().equals(user.getId())){
-            todoRepository.delete(todo);
-            return;
-        }
-
-        Team team = todo.getTeam();
-        if(team == null){
-            throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
-        }
-
-        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(team.getId(), user.getId())
-                .orElseThrow(()-> new ApiException(ErrorCode.ONLY_OWNER_CAN_UPDATE));
-
-        if (teamMember.getRole() != Role.OWNER){
-            throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
-        }
+        validateTodoDeleteAuthority(todo, user.getId());
 
         todoRepository.delete(todo);
+    }
+
+    private void validateTodoDeleteAuthority(Todo todo, Long userId) {
+
+        if (todo.isOwner(userId)) return;
+
+        if (!todo.isTeamTodo()) {
+            throw new ApiException(ErrorCode.TODO_DELETE_FORBIDDEN); // (추천) delete 전용 코드
+        }
+
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(todo.getTeamId(), userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND)); // (추천) 의미 일치
+
+        if (!teamMember.isOwner()) {
+            throw new ApiException(ErrorCode.TODO_DELETE_FORBIDDEN);
+        }
     }
 }

@@ -7,7 +7,6 @@ import com.project4.DailyTask.domain.channel.entity.Channel;
 import com.project4.DailyTask.domain.channel.repository.ChannelRepository;
 import com.project4.DailyTask.domain.message.repository.MessageRepository;
 import com.project4.DailyTask.domain.team.entity.Role;
-import com.project4.DailyTask.domain.team.entity.Team;
 import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.global.exception.ApiException;
@@ -16,8 +15,6 @@ import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -36,7 +33,7 @@ public class ApiV1ChannelService {
 
         Channel channel = Channel.builder()
                 .team(teamMember.getTeam())
-                .name(req.getName())
+                .name(req.name())
                 .build();
 
         channelRepository.save(channel);
