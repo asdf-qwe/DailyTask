@@ -9,5 +9,4 @@ public record TeamMemberListRes (
         String name,
         String email,
         Role role
-        ){
-}
+        ){}

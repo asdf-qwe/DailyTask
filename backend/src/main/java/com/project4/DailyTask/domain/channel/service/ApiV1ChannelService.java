@@ -6,9 +6,8 @@ import com.project4.DailyTask.domain.channel.dto.CreateChannelRes;
 import com.project4.DailyTask.domain.channel.entity.Channel;
 import com.project4.DailyTask.domain.channel.repository.ChannelRepository;
 import com.project4.DailyTask.domain.message.repository.MessageRepository;
-import com.project4.DailyTask.domain.team.entity.Role;
 import com.project4.DailyTask.domain.team.entity.TeamMember;
-import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
+import com.project4.DailyTask.global.checker.TeamMemberChecker;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
@@ -23,18 +22,14 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ApiV1ChannelService {
     private final ChannelRepository channelRepository;
-    private final TeamMemberRepository teamMemberRepository;
     private final MessageRepository messageRepository;
+    private final TeamMemberChecker teamMemberChecker;
 
     @Transactional
     public CreateChannelRes createChannel(Long teamId, SecurityUser user, CreateChannelReq req){
-        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
-                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+        TeamMember teamMember = teamMemberChecker.findMemberOrThrow(teamId, user.getId());
 
-        Channel channel = Channel.builder()
-                .team(teamMember.getTeam())
-                .name(req.name())
-                .build();
+        Channel channel = Channel.createChannel(teamMember.getTeam(), req.name());
 
         channelRepository.save(channel);
 
@@ -47,38 +42,33 @@ public class ApiV1ChannelService {
     }
 
 
-    @Transactional
     public List<ChannelListRes> getChannelList(Long teamId, SecurityUser user){
-        teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
-                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
-
-        return channelRepository.findAllByTeamId(teamId).stream()
-                .map(channel -> ChannelListRes.builder()
-                        .id(channel.getId())
-                        .name(channel.getName())
-                        .teamName(channel.getTeam().getName())
-                        .createdAt(channel.getCreatedAt())
-                        .build())
-                .toList();
+        teamMemberChecker.findMemberOrThrow(teamId, user.getId());
+        return channelRepository.findChannelListByTeamId1(teamId);
     }
 
     @Transactional
     public void deleteChannel(Long teamId, Long channelId, SecurityUser user) {
-        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
-                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+        TeamMember member = teamMemberChecker.findMemberOrThrow(teamId, user.getId());
+        validateDeleteAuthority(member);
 
-        if(teamMember.getRole() != Role.OWNER){
+        Channel channel = findChannelOrThrow(channelId, teamId);
+        deleteRelatedMessages(channelId);
+        channelRepository.delete(channel);
+    }
+    private void validateDeleteAuthority(TeamMember member) {
+        if (!member.isOwner()) {
             throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE);
         }
-        Channel channel = channelRepository.findByIdAndTeamId(channelId, teamId)
+    }
+
+    private Channel findChannelOrThrow(Long channelId, Long teamId) {
+        return channelRepository.findByIdAndTeamId(channelId, teamId)
                 .orElseThrow(() -> new ApiException(ErrorCode.CHANNEL_NOT_FOUND));
+    }
 
-        int deleted = messageRepository.deleteAllByChannelId(channelId);
-
-
-        channelRepository.delete(channel);
-
-
+    private void deleteRelatedMessages(Long channelId) {
+        messageRepository.deleteAllByChannelId(channelId);
     }
 }
 

@@ -5,6 +5,7 @@ import com.project4.DailyTask.domain.team.service.ApiV1TeamService;
 import com.project4.DailyTask.domain.team.service.TeamPerfService;
 import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -16,14 +17,13 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@Profile("perf")
 @RequestMapping("api/v1/teams")
 public class ApiV1TeamController {
     private final ApiV1TeamService teamService;
     private final TeamPerfService teamPerfService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<GetTeamRes>>> getTeam(@AuthenticationPrincipal SecurityUser user){
+    public ResponseEntity<ApiResponse<List<GetTeamRes>>> getTeam(@AuthenticationPrincipal SecurityUser user) {
 
         List<GetTeamRes> res = teamService.getTeam(user);
 
@@ -31,8 +31,8 @@ public class ApiV1TeamController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<CreateTeamResponse>> createTeam(@RequestBody CreateTeamRequest dto,
-                                                                      @AuthenticationPrincipal SecurityUser user){
+    public ResponseEntity<ApiResponse<CreateTeamResponse>> createTeam(@Valid @RequestBody CreateTeamRequest dto,
+                                                                      @AuthenticationPrincipal SecurityUser user) {
         CreateTeamResponse response = teamService.createTeam(dto, user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
@@ -40,16 +40,16 @@ public class ApiV1TeamController {
 
     @PostMapping("/{teamId}/invite-code")
     public ResponseEntity<ApiResponse<InviteCodeResponse>> createCode(@PathVariable Long teamId,
-                                                                    @AuthenticationPrincipal SecurityUser user,
-                                                                    @RequestBody CreateInviteCodeRequest dto){
-        InviteCodeResponse response = teamService.createInviteCode(teamId,user,dto);
+                                                                      @AuthenticationPrincipal SecurityUser user,
+                                                                      @RequestBody CreateInviteCodeRequest dto) {
+        InviteCodeResponse response = teamService.createInviteCode(teamId, user, dto);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
     @PostMapping("/join")
     public ResponseEntity<ApiResponse<JoinTeamResponse>> joinTeam(@RequestBody JoinTeamRequest dto,
-                                                                  @AuthenticationPrincipal SecurityUser user){
+                                                                  @AuthenticationPrincipal SecurityUser user) {
         JoinTeamResponse response = teamService.joinTeam(dto, user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
@@ -58,7 +58,7 @@ public class ApiV1TeamController {
     @PutMapping("/{teamId}")
     public ResponseEntity<ApiResponse<UpdateTeamRes>> updateTeam(@RequestBody UpdateTeamReq req,
                                                                  @AuthenticationPrincipal SecurityUser user,
-                                                                 @PathVariable Long teamId){
+                                                                 @PathVariable Long teamId) {
 
         UpdateTeamRes res = teamService.updateTeam(teamId, user, req);
 
@@ -67,7 +67,7 @@ public class ApiV1TeamController {
 
     @PatchMapping("/{teamId}/leave")
     public ResponseEntity<ApiResponse<Boolean>> leftTeam(@PathVariable Long teamId,
-                                                         @AuthenticationPrincipal SecurityUser user){
+                                                         @AuthenticationPrincipal SecurityUser user) {
         teamService.leftTeam(teamId, user);
 
         return ResponseEntity.ok(ApiResponse.ok(true));
@@ -76,7 +76,7 @@ public class ApiV1TeamController {
 
     @GetMapping("/{teamId}/members")
     public ResponseEntity<ApiResponse<List<TeamMemberListRes>>> getTeamMemberList(@PathVariable Long teamId,
-                                                                                  @AuthenticationPrincipal SecurityUser user){
+                                                                                  @AuthenticationPrincipal SecurityUser user) {
         List<TeamMemberListRes> memberListRes = teamService.getTeamMembers(teamId, user);
 
         return ResponseEntity.ok(ApiResponse.ok(memberListRes));
@@ -85,9 +85,9 @@ public class ApiV1TeamController {
     @PatchMapping("/{teamId}/members/{userId}")
     public ResponseEntity<ApiResponse<Boolean>> deleteMember(@PathVariable Long teamId,
                                                              @PathVariable Long userId,
-                                                             @AuthenticationPrincipal SecurityUser user){
+                                                             @AuthenticationPrincipal SecurityUser user) {
 
-        teamService.deleteMember(teamId,user,userId);
+        teamService.deleteMember(teamId, user, userId);
 
         return ResponseEntity.ok(ApiResponse.ok(true));
     }

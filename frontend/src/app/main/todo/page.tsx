@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { CheckSquare, Plus, Search, Filter } from "lucide-react";
+import { CheckSquare, Plus, Search, Filter, Users } from "lucide-react";
 import Header from "@/src/component/Header";
 import TodoCard from "@/src/component/todo/TodoCard";
 import TodoStats from "@/src/component/todo/TodoStats";
 import TodoCreateModal from "@/src/component/todo/TodoCreateModal";
 import TodoEditModal from "@/src/component/todo/TodoEditModal";
 import { todoService } from "@/src/features/todo/service/todoService";
+import { teamService } from "@/src/features/team/service/teamService";
 import {
   TodoSummary,
   TodoStatus,
@@ -28,6 +29,11 @@ export default function TodoPage() {
   const [page, setPage] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
+  // 팀 관련 state
+  const [viewMode, setViewMode] = useState<"personal" | "team">("personal");
+  const [teams, setTeams] = useState<{ teamId: number; name: string }[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+
   // 폼 상태
   const [formData, setFormData] = useState({
     title: "",
@@ -40,6 +46,22 @@ export default function TodoPage() {
     status: TodoStatus.TODO,
   });
 
+  // 팀 목록 불러오기
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const response = await teamService.getTeam();
+        if (response.success && response.data.length > 0) {
+          setTeams(response.data);
+          setSelectedTeamId(response.data[0].teamId);
+        }
+      } catch (error) {
+        console.error("Failed to fetch teams:", error);
+      }
+    };
+    fetchTeams();
+  }, []);
+
   // Todo 목록 불러오기
   const fetchTodos = useCallback(async () => {
     setIsLoading(true);
@@ -49,7 +71,23 @@ export default function TodoPage() {
           ? { status: filterStatus as TodoStatus }
           : undefined;
 
-      const response = await todoService.getTodoList(page, 20, cond);
+      let response;
+      if (viewMode === "personal") {
+        response = await todoService.getTodoList(page, 20, cond);
+      } else {
+        if (selectedTeamId === null) {
+          setTodos([]);
+          setTotalElements(0);
+          setIsLoading(false);
+          return;
+        }
+        response = await todoService.getTeamTodoList(
+          selectedTeamId,
+          page,
+          20,
+          cond,
+        );
+      }
       setTodos(response.content);
       setTotalElements(response.totalElements);
     } catch (error) {
@@ -57,7 +95,7 @@ export default function TodoPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filterStatus, page]);
+  }, [filterStatus, page, viewMode, selectedTeamId]);
 
   useEffect(() => {
     fetchTodos();
@@ -103,7 +141,16 @@ export default function TodoPage() {
         dueDate: formData.dueDate,
       };
 
-      await todoService.createTodo(req);
+      if (viewMode === "personal") {
+        await todoService.createTodo(req);
+      } else {
+        if (selectedTeamId === null) {
+          alert("팀을 선택해주세요.");
+          return;
+        }
+        await todoService.createTeamTodo(selectedTeamId, req);
+      }
+
       setShowCreateModal(false);
       setFormData({ title: "", dueDate: "" });
       fetchTodos();
@@ -111,41 +158,44 @@ export default function TodoPage() {
       console.error("Failed to create todo:", error);
       alert("Todo 생성에 실패했습니다.");
     }
-  }, [formData, fetchTodos]);
+  }, [formData, fetchTodos, viewMode, selectedTeamId]);
 
-  const handleStatusChange = useCallback(async (
-    todoId: number,
-    newStatus: TodoStatus
-  ) => {
-    try {
-      const todo = todos.find((t) => t.id === todoId);
-      if (!todo) return;
+  const handleStatusChange = useCallback(
+    async (todoId: number, newStatus: TodoStatus) => {
+      try {
+        const todo = todos.find((t) => t.id === todoId);
+        if (!todo) return;
 
-      const req: UpdateTodoReq = {
-        title: todo.title,
-        date: todo.dueDate,
-        status: newStatus,
-      };
+        const req: UpdateTodoReq = {
+          title: todo.title,
+          date: todo.dueDate,
+          status: newStatus,
+        };
 
-      await todoService.updateTodo(todoId, req);
-      fetchTodos();
-    } catch (error) {
-      console.error("Failed to update todo status:", error);
-      alert("상태 변경에 실패했습니다.");
-    }
-  }, [todos, fetchTodos]);
+        await todoService.updateTodo(todoId, req);
+        fetchTodos();
+      } catch (error) {
+        console.error("Failed to update todo status:", error);
+        alert("상태 변경에 실패했습니다.");
+      }
+    },
+    [todos, fetchTodos],
+  );
 
-  const handleDeleteTodo = useCallback(async (todoId: number) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+  const handleDeleteTodo = useCallback(
+    async (todoId: number) => {
+      if (!confirm("정말 삭제하시겠습니까?")) return;
 
-    try {
-      await todoService.deleteTodo(todoId);
-      fetchTodos();
-    } catch (error) {
-      console.error("Failed to delete todo:", error);
-      alert("삭제에 실패했습니다.");
-    }
-  }, [fetchTodos]);
+      try {
+        await todoService.deleteTodo(todoId);
+        fetchTodos();
+      } catch (error) {
+        console.error("Failed to delete todo:", error);
+        alert("삭제에 실패했습니다.");
+      }
+    },
+    [fetchTodos],
+  );
 
   const handleEditTodo = useCallback((todo: TodoSummary) => {
     setSelectedTodo(todo);
@@ -238,15 +288,57 @@ export default function TodoPage() {
               <CheckSquare className="w-8 h-8" />
               Todo
             </h1>
-            <p className="text-gray-600">할 일을 관리하고 진행 상황을 추적하세요</p>
+            <p className="text-gray-600">
+              할 일을 관리하고 진행 상황을 추적하세요
+            </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            새 Todo
-          </button>
+          <div className="flex items-center gap-3">
+            {/* 개인/팀 전환 버튼 */}
+            <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode("personal")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === "personal"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                개인
+              </button>
+              <button
+                onClick={() => setViewMode("team")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                  viewMode === "team"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <Users className="w-4 h-4" />팀
+              </button>
+            </div>
+
+            {/* 팀 선택 드롭다운 (팀 모드일 때만) */}
+            {viewMode === "team" && teams.length > 0 && (
+              <select
+                value={selectedTeamId || ""}
+                onChange={(e) => setSelectedTeamId(Number(e.target.value))}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white"
+              >
+                {teams.map((team) => (
+                  <option key={team.teamId} value={team.teamId}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+            >
+              <Plus className="w-5 h-5" />새 Todo
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -326,6 +418,12 @@ export default function TodoPage() {
       <TodoCreateModal
         show={showCreateModal}
         formData={formData}
+        isTeamMode={viewMode === "team"}
+        teamName={
+          viewMode === "team" && selectedTeamId
+            ? teams.find((t) => t.teamId === selectedTeamId)?.name || ""
+            : ""
+        }
         onClose={() => setShowCreateModal(false)}
         onCreate={handleCreateTodo}
         onFormChange={setFormData}

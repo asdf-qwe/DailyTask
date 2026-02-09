@@ -14,6 +14,7 @@ import {
   MemoSummary,
   CreateMemoReq,
   MemoRes,
+  UpdateMemoReq,
 } from "@/src/features/memo/types/memo";
 
 export default function MemoPage() {
@@ -70,7 +71,7 @@ export default function MemoPage() {
       const response = await memoService.getMemoList(
         teamId,
         currentPage,
-        pageSize
+        pageSize,
       );
 
       if (response.success) {
@@ -106,8 +107,7 @@ export default function MemoPage() {
         (filterPublic === "private" && !memo.sharedToTeam);
       const matchesSearch =
         debouncedSearchQuery === "" ||
-        memo.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        memo.preview.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+        memo.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
 
       return matchesPublic && matchesSearch;
     });
@@ -157,6 +157,45 @@ export default function MemoPage() {
     }
   }, []);
 
+  const handleEditMemo = useCallback((memo: MemoRes) => {
+    setFormData({
+      title: memo.title,
+      content: memo.content,
+      sharedToTeam: memo.sharedToTeam,
+    });
+    setSelectedMemo(memo);
+    setShowDetailModal(false);
+    setShowCreateModal(true);
+  }, []);
+
+  const handleUpdateMemo = useCallback(async () => {
+    if (!selectedMemo || !formData.title.trim() || !formData.content.trim())
+      return;
+
+    try {
+      const req: UpdateMemoReq = {
+        title: formData.title,
+        content: formData.content,
+        sharedToTeam: formData.sharedToTeam,
+      };
+
+      const response = await memoService.updateMemo(selectedMemo.id, req);
+      if (response.success) {
+        setShowCreateModal(false);
+        setSelectedMemo(null);
+        setFormData({
+          title: "",
+          content: "",
+          sharedToTeam: true,
+        });
+        fetchMemos();
+      }
+    } catch (error) {
+      console.error("Failed to update memo:", error);
+      alert("메모 수정에 실패했습니다.");
+    }
+  }, [formData, selectedMemo, fetchMemos]);
+
   const handleDeleteMemo = useCallback(
     async (memoId: number) => {
       if (!confirm("정말 삭제하시겠습니까?")) return;
@@ -171,7 +210,7 @@ export default function MemoPage() {
         console.error("Failed to delete memo:", error);
       }
     },
-    [fetchMemos]
+    [fetchMemos],
   );
 
   return (
@@ -286,8 +325,8 @@ export default function MemoPage() {
                     setCurrentPage(
                       Math.min(
                         Math.ceil(totalElements / pageSize) - 1,
-                        currentPage + 1
-                      )
+                        currentPage + 1,
+                      ),
                     )
                   }
                   disabled={
@@ -309,8 +348,13 @@ export default function MemoPage() {
         formData={formData}
         teams={teams}
         teamId={teamId}
-        onClose={() => setShowCreateModal(false)}
-        onSave={handleSaveMemo}
+        isEditMode={!!selectedMemo}
+        onClose={() => {
+          setShowCreateModal(false);
+          setSelectedMemo(null);
+          setFormData({ title: "", content: "", sharedToTeam: true });
+        }}
+        onSave={selectedMemo ? handleUpdateMemo : handleSaveMemo}
         onFormChange={setFormData}
         onTeamChange={setTeamId}
       />
@@ -320,6 +364,7 @@ export default function MemoPage() {
         show={showDetailModal}
         memo={selectedMemo}
         onClose={() => setShowDetailModal(false)}
+        onEdit={handleEditMemo}
         onDelete={handleDeleteMemo}
       />
     </div>

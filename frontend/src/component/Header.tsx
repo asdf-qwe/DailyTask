@@ -41,7 +41,7 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
       const response = await notificationService.getNotifications();
       if (response.success) {
         setNotifications(response.data);
-        setUnreadCount(response.data.filter((n) => !n.isRead).length);
+        setUnreadCount(response.data.filter((n) => !n.read).length);
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -60,13 +60,13 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
         console.error("Failed to mark notification as read:", error);
       }
     },
-    [fetchNotifications]
+    [fetchNotifications],
   );
 
   // 알림 클릭 처리
   const handleNotificationClick = useCallback(
     (notification: NotificationRes) => {
-      if (!notification.isRead) {
+      if (!notification.read) {
         handleMarkAsRead(notification.id);
       }
 
@@ -79,7 +79,7 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
 
       setShowNotifications(false);
     },
-    [handleMarkAsRead, router]
+    [handleMarkAsRead, router],
   );
 
   // 외부 클릭 감지
@@ -197,13 +197,13 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
                                   handleNotificationClick(notification)
                                 }
                                 className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                                  !notification.isRead ? "bg-blue-50" : ""
+                                  !notification.read ? "bg-blue-50" : ""
                                 }`}
                               >
                                 <div className="flex items-start gap-3">
                                   <div
                                     className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                                      !notification.isRead
+                                      !notification.read
                                         ? "bg-blue-500"
                                         : "bg-gray-300"
                                     }`}
@@ -211,7 +211,7 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
                                   <div className="flex-1 min-w-0">
                                     <p
                                       className={`text-sm ${
-                                        !notification.isRead
+                                        !notification.read
                                           ? "font-medium text-gray-900"
                                           : "text-gray-700"
                                       }`}
@@ -220,7 +220,7 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
                                     </p>
                                     <p className="text-xs text-gray-500 mt-1">
                                       {new Date(
-                                        notification.createdAt
+                                        notification.createdAt,
                                       ).toLocaleString("ko-KR", {
                                         month: "short",
                                         day: "numeric",

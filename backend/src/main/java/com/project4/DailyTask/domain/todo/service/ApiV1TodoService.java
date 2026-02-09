@@ -10,6 +10,7 @@ import com.project4.DailyTask.domain.todo.entity.TodoStatus;
 import com.project4.DailyTask.domain.todo.repository.TodoRepository;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
+import com.project4.DailyTask.global.checker.TeamMemberChecker;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
@@ -26,10 +27,9 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ApiV1TodoService {
 
+    private final TeamMemberChecker teamMemberChecker;
     private final TodoRepository todoRepository;
     private final UserRepository userRepository;
-    private final TeamMemberRepository teamMemberRepository;
-
 
     @Transactional
     public CreateTodoRes createTodo(SecurityUser user, CreateTodoReq req) {
@@ -46,11 +46,8 @@ public class ApiV1TodoService {
     @Transactional
     public CreateTeamTodoRes createTeamTodo(Long teamId, CreateTodoReq req, SecurityUser user) {
 
-        // 권한/소속 검증
-        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
-                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+        TeamMember teamMember = teamMemberChecker.findTeamMemberWithRefsOrThrow(teamId,user.getId());
 
-        // 엔티티 생성 (도메인 메서드/팩토리 추천)
         Todo teamTodo = Todo.createTeamTodo(
                 teamMember.getUser(),
                 teamMember.getTeam(),
@@ -69,65 +66,43 @@ public class ApiV1TodoService {
         );
     }
 
-    public TodoListRes getTodoList(SecurityUser user,
-                                   Pageable pageable,
-                                   TodoSearchCond cond) {
+    public TodoListRes getTodoList(SecurityUser user, Pageable pageable, TodoSearchCond cond) {
 
-        Page<Todo> todoPage = todoRepository.searchMyTodos(
+        Page<TodoSummary> todoPage = todoRepository.searchMyTodos(
                 user.getId(),
-                cond.getDate(),
-                cond.getStatus(),
+                cond.date(),
+                cond.status(),
                 pageable
         );
 
-        List<TodoListRes.TodoSummary> content = todoPage.getContent().stream()
-                .map(todo -> TodoListRes.TodoSummary.builder()
-                        .id(todo.getId())
-                        .title(todo.getTitle())
-                        .dueDate(todo.getDueDate())
-                        .todoStatus(todo.getTodoStatus())
-                        .build())
-                .toList();
-
-        return TodoListRes.builder()
-                .content(content)
-                .page(todoPage.getNumber())
-                .size(todoPage.getSize())
-                .totalElements(todoPage.getTotalElements())
-                .build();
+        return new TodoListRes(
+                todoPage.getContent(),
+                todoPage.getNumber(),
+                todoPage.getSize(),
+                todoPage.getTotalElements()
+        );
     }
-
 
     public TodoListRes getTeamTodoList(Long teamId,
                                        SecurityUser user,
                                        Pageable pageable,
                                        TodoSearchCond cond) {
 
-        teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId())
-                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
+        teamMemberChecker.findMemberOrThrow(teamId,user.getId());
 
-        Page<Todo> teamTodoPage = todoRepository.searchTeamTodos(
+        Page<TodoSummary> teamTodoPage = todoRepository.searchTeamTodos(
                 teamId,
-                cond.getDate(),
-                cond.getStatus(),
+                cond.date(),
+                cond.status(),
                 pageable
         );
 
-        List<TodoListRes.TodoSummary> content = teamTodoPage.getContent().stream()
-                .map(todo -> TodoListRes.TodoSummary.builder()
-                        .id(todo.getId())
-                        .title(todo.getTitle())
-                        .dueDate(todo.getDueDate())
-                        .todoStatus(todo.getTodoStatus())
-                        .build())
-                .toList();
-
-        return TodoListRes.builder()
-                .content(content)
-                .page(teamTodoPage.getNumber())
-                .size(teamTodoPage.getSize())
-                .totalElements(teamTodoPage.getTotalElements())
-                .build();
+        return new TodoListRes(
+                teamTodoPage.getContent(),
+                teamTodoPage.getNumber(),
+                teamTodoPage.getSize(),
+                teamTodoPage.getTotalElements()
+        );
     }
 
     @Transactional
@@ -150,8 +125,7 @@ public class ApiV1TodoService {
             throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
         }
 
-        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(todo.getTeamId(), userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.ONLY_OWNER_CAN_UPDATE));
+        TeamMember teamMember = teamMemberChecker.findMemberOrThrow(todo.getTeamId(),userId);
 
         if (!teamMember.isOwner()) {
             throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
@@ -173,11 +147,10 @@ public class ApiV1TodoService {
         if (todo.isOwner(userId)) return;
 
         if (!todo.isTeamTodo()) {
-            throw new ApiException(ErrorCode.TODO_DELETE_FORBIDDEN); // (추천) delete 전용 코드
+            throw new ApiException(ErrorCode.TODO_DELETE_FORBIDDEN);
         }
 
-        TeamMember teamMember = teamMemberRepository.findByTeamIdAndUserId(todo.getTeamId(), userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND)); // (추천) 의미 일치
+        TeamMember teamMember = teamMemberChecker.findMemberOrThrow(todo.getTeamId(),userId);
 
         if (!teamMember.isOwner()) {
             throw new ApiException(ErrorCode.TODO_DELETE_FORBIDDEN);

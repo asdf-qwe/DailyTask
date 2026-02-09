@@ -33,7 +33,7 @@ import {
 export default function ChatPage() {
   const { user } = useAuth();
   const [selectedChannel, setSelectedChannel] = useState<ChannelListRes | null>(
-    null
+    null,
   );
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -106,7 +106,7 @@ export default function ChatPage() {
       setIsLoadingMessages(true);
       try {
         const response = await messageService.getChatHistory(
-          selectedChannel.id
+          selectedChannel.id,
         );
         if (response.success) {
           setMessages(response.data);
@@ -133,7 +133,7 @@ export default function ChatPage() {
   // 채널 필터링 (useMemo로 최적화)
   const filteredChannels = useMemo(() => {
     return channels.filter((channel) =>
-      channel.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+      channel.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()),
     );
   }, [channels, debouncedSearchQuery]);
 
@@ -161,12 +161,15 @@ export default function ChatPage() {
     }
   }, [messageInput, selectedChannel]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  }, [handleSendMessage]);
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    },
+    [handleSendMessage],
+  );
 
   const handleCreateChannel = useCallback(async () => {
     if (!newChannelName.trim() || teamId === null) return;
@@ -190,7 +193,8 @@ export default function ChatPage() {
         setNewChannelName("");
       } else {
         alert(
-          "채널 생성에 실패했습니다: " + (response.message || "알 수 없는 오류")
+          "채널 생성에 실패했습니다: " +
+            (response.message || "알 수 없는 오류"),
         );
       }
     } catch (error) {
@@ -198,6 +202,35 @@ export default function ChatPage() {
       alert("채널 생성 중 오류가 발생했습니다. 콘솔을 확인하세요.");
     }
   }, [newChannelName, teamId]);
+
+  const handleDeleteChannel = useCallback(
+    async (channelId: number) => {
+      if (!teamId) return;
+      if (!confirm("정말 이 채널을 삭제하시겠습니까?")) return;
+
+      try {
+        const response = await channelService.deleteChannel(teamId, channelId);
+        if (response.success) {
+          // 채널 목록 다시 불러오기
+          const channelsResponse = await channelService.getChannels(teamId);
+          if (channelsResponse.success) {
+            setChannels(channelsResponse.data);
+          }
+
+          // 삭제된 채널이 선택된 채널이면 선택 해제
+          if (selectedChannel?.id === channelId) {
+            setSelectedChannel(null);
+          }
+
+          alert("채널이 삭제되었습니다.");
+        }
+      } catch (error) {
+        console.error("Failed to delete channel:", error);
+        alert("채널 삭제에 실패했습니다.");
+      }
+    },
+    [teamId, selectedChannel],
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -288,13 +321,17 @@ export default function ChatPage() {
                         <p className="text-xs text-gray-500">
                           생성일:{" "}
                           {new Date(
-                            selectedChannel.createdAt
+                            selectedChannel.createdAt,
                           ).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    <button className="p-2 hover:bg-gray-100 rounded-lg">
-                      <MoreVertical className="w-5 h-5 text-gray-600" />
+                    <button
+                      onClick={() => handleDeleteChannel(selectedChannel.id)}
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                      title="채널 삭제"
+                    >
+                      <X className="w-5 h-5 text-red-600" />
                     </button>
                   </div>
 

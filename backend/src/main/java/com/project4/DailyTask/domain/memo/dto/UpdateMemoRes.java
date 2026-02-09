@@ -1,14 +1,5 @@
 package com.project4.DailyTask.domain.memo.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.time.LocalDateTime;
 
-@Getter
-@AllArgsConstructor
-public class UpdateMemoRes {
-    private Long id;
-    private String title;
-    private LocalDateTime updatedAt;
-}
+public record UpdateMemoRes (Long id, String title, LocalDateTime updatedAt) {}

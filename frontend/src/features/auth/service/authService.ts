@@ -8,7 +8,8 @@ import {
 
 // API 기본 URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-const API_PREFIX = "/api/v1/users";
+const AUTH_PREFIX = "/api/v1/auth";
+const USER_PREFIX = "/api/v1/users";
 
 // Axios 인스턴스 생성
 const authApi = axios.create({
@@ -50,7 +51,7 @@ export const authService = {
     request: SignupRequestDto
   ): Promise<ApiResponse<UserResponseDto>> => {
     const response = await authApi.post<ApiResponse<UserResponseDto>>(
-      `${API_PREFIX}/signup`,
+      `${USER_PREFIX}/signup`,
       request
     );
     return response.data;
@@ -61,7 +62,7 @@ export const authService = {
    */
   checkEmail: async (email: string): Promise<ApiResponse<string>> => {
     const response = await authApi.get<ApiResponse<string>>(
-      `${API_PREFIX}/check-email`,
+      `${USER_PREFIX}/check-email`,
       {
         params: { email },
       }
@@ -74,7 +75,7 @@ export const authService = {
    */
   checkLoginId: async (loginId: string): Promise<ApiResponse<string>> => {
     const response = await authApi.get<ApiResponse<string>>(
-      `${API_PREFIX}/check-loginId`,
+      `${USER_PREFIX}/check-loginId`,
       {
         params: { loginId },
       }
@@ -90,7 +91,7 @@ export const authService = {
     request: LoginRequestDto
   ): Promise<ApiResponse<TokenResponseDto>> => {
     const response = await authApi.post<ApiResponse<TokenResponseDto>>(
-      `${API_PREFIX}/login`,
+      `${AUTH_PREFIX}/login`,
       request
     );
     return response.data;
@@ -101,7 +102,7 @@ export const authService = {
    */
   logout: async (): Promise<ApiResponse<string>> => {
     const response = await authApi.post<ApiResponse<string>>(
-      `${API_PREFIX}/logout`
+      `${AUTH_PREFIX}/logout`
     );
     return response.data;
   },
@@ -111,7 +112,7 @@ export const authService = {
    */
   refreshToken: async (): Promise<ApiResponse<TokenResponseDto>> => {
     const response = await authApi.post<ApiResponse<TokenResponseDto>>(
-      `${API_PREFIX}/refresh`
+      `${AUTH_PREFIX}/refresh`
     );
     return response.data;
   },
@@ -121,7 +122,7 @@ export const authService = {
    */
   getMyProfile: async (): Promise<ApiResponse<UserResponseDto>> => {
     const response = await authApi.get<ApiResponse<UserResponseDto>>(
-      `${API_PREFIX}/me`
+      `${AUTH_PREFIX}/me`
     );
     return response.data;
   },

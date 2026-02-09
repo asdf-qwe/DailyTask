@@ -19,41 +19,28 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     Optional<TeamMember> findByTeamIdAndRoleAndTeamStatus(Long teamId, Role role, TeamStatus teamStatus);
     Optional<TeamMember> findByTeamIdAndUserId(Long teamId, Long userId);
     Optional<TeamMember> findByTeamIdAndUserIdAndTeamStatus(Long teamId, Long userId, TeamStatus status);
-
-    @Query("""
-       SELECT tm FROM TeamMember tm
-       JOIN FETCH tm.user
-       WHERE tm.team.id = :teamId
-       """)
-    List<TeamMember> findAllByTeamIdWithUser(@Param("teamId") Long teamId);
-
-
-    void deleteByTeamIdAndUserId(Long teamId, Long userId);
-
     boolean existsByTeamIdAndUserId(Long teamId, Long userId);
 
-    List<TeamMember> findAllByUserId(Long userId);
-
-    @Query("SELECT tm FROM TeamMember tm " +
-            "JOIN FETCH tm.team t " +
-            "LEFT JOIN FETCH t.teamMembers " +
-            "WHERE tm.user.id = :userId " +
-            "AND tm.teamStatus = 'JOINED'")
-    List<TeamMember> findAllByUserIdWithTeamMembers(@Param("userId") Long userId);
+    @Query("""
+            select tm
+            from TeamMember tm
+            join fetch tm.user
+            where tm.team.id = :teamId
+            """)
+    List<TeamMember> findAllByTeamIdWithUser(@Param("teamId") Long teamId);
 
     @Query("""
-        select new com.project4.DailyTask.domain.team.dto.GetTeamRes(
+            select new com.project4.DailyTask.domain.team.dto.GetTeamRes(
             t.id,
             t.name,
             cast(count(m) as int)
-        )
-        from TeamMember my
-        join my.team t
-        left join t.teamMembers m on m.teamStatus = com.project4.DailyTask.domain.team.entity.TeamStatus.JOINED
-        where my.user.id = :userId
-          and my.teamStatus = com.project4.DailyTask.domain.team.entity.TeamStatus.JOINED
-        group by t.id, t.name
-        """)
+            )
+            from TeamMember tm
+            join tm.team t
+            left join t.teamMembers m on m.teamStatus = com.project4.DailyTask.domain.team.entity.TeamStatus.JOINED
+            where tm.user.id = :userId and tm.teamStatus = com.project4.DailyTask.domain.team.entity.TeamStatus.JOINED
+            group by t.id, t.name
+            """)
     List<GetTeamRes> findMyTeamsWithJoinedCount(@Param("userId") Long userId);
 
     @Query("""
@@ -71,4 +58,12 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
             """)
     List<TeamMemberListRes> findMemberListByTeamIdAndStatus(@Param("teamId") Long teamId,
                                                             @Param("status") TeamStatus status);
+
+    @Query("""
+            select tm
+            from TeamMember tm
+            join fetch tm.user
+            join fetch tm.team
+            where tm.team.id = :teamId and tm.user.id = :userId""")
+    Optional<TeamMember> findByTeamIdAndUserIdWithUserAndTeam(Long teamId, Long userId);
 }

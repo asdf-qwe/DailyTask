@@ -41,7 +41,7 @@ teamApi.interceptors.response.use(
       console.error("Authentication failed");
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -50,12 +50,9 @@ teamApi.interceptors.response.use(
 export const teamService = {
   /**
    * 내 팀 목록 조회
-   * TODO: 실제 백엔드 API가 구현되면 엔드포인트 확인 필요
    */
-  getMyTeams: async (): Promise<ApiResponse<CreateTeamResponse[]>> => {
-    const response = await teamApi.get<ApiResponse<CreateTeamResponse[]>>(
-      API_PREFIX
-    );
+  getTeam: async (): Promise<ApiResponse<GetTeamRes[]>> => {
+    const response = await teamApi.get<ApiResponse<GetTeamRes[]>>(API_PREFIX);
     return response.data;
   },
 
@@ -63,11 +60,11 @@ export const teamService = {
    * 팀 생성
    */
   createTeam: async (
-    request: CreateTeamRequest
+    request: CreateTeamRequest,
   ): Promise<ApiResponse<CreateTeamResponse>> => {
     const response = await teamApi.post<ApiResponse<CreateTeamResponse>>(
       API_PREFIX,
-      request
+      request,
     );
     return response.data;
   },
@@ -77,11 +74,11 @@ export const teamService = {
    */
   createInviteCode: async (
     teamId: number,
-    request: CreateInviteCodeRequest
+    request: CreateInviteCodeRequest,
   ): Promise<ApiResponse<InviteCodeResponse>> => {
     const response = await teamApi.post<ApiResponse<InviteCodeResponse>>(
       `${API_PREFIX}/${teamId}/invite-code`,
-      request
+      request,
     );
     return response.data;
   },
@@ -90,11 +87,11 @@ export const teamService = {
    * 팀 가입 (초대 코드로)
    */
   joinTeam: async (
-    request: JoinTeamRequest
+    request: JoinTeamRequest,
   ): Promise<ApiResponse<JoinTeamResponse>> => {
     const response = await teamApi.post<ApiResponse<JoinTeamResponse>>(
       `${API_PREFIX}/join`,
-      request
+      request,
     );
     return response.data;
   },
@@ -104,11 +101,11 @@ export const teamService = {
    */
   updateTeam: async (
     teamId: number,
-    request: UpdateTeamReq
+    request: UpdateTeamReq,
   ): Promise<ApiResponse<UpdateTeamRes>> => {
     const response = await teamApi.put<ApiResponse<UpdateTeamRes>>(
       `${API_PREFIX}/${teamId}`,
-      request
+      request,
     );
     return response.data;
   },
@@ -118,7 +115,7 @@ export const teamService = {
    */
   leaveTeam: async (teamId: number): Promise<ApiResponse<boolean>> => {
     const response = await teamApi.patch<ApiResponse<boolean>>(
-      `${API_PREFIX}/${teamId}/leave`
+      `${API_PREFIX}/${teamId}/leave`,
     );
     return response.data;
   },
@@ -127,10 +124,10 @@ export const teamService = {
    * 팀 멤버 목록 조회
    */
   getTeamMembers: async (
-    teamId: number
+    teamId: number,
   ): Promise<ApiResponse<TeamMemberListRes[]>> => {
     const response = await teamApi.get<ApiResponse<TeamMemberListRes[]>>(
-      `${API_PREFIX}/${teamId}/members`
+      `${API_PREFIX}/${teamId}/members`,
     );
     return response.data;
   },
@@ -140,20 +137,10 @@ export const teamService = {
    */
   deleteMember: async (
     teamId: number,
-    memberId: number
+    memberId: number,
   ): Promise<ApiResponse<boolean>> => {
     const response = await teamApi.patch<ApiResponse<boolean>>(
-      `${API_PREFIX}/${teamId}/members/${memberId}`
-    );
-    return response.data;
-  },
-
-  /**
-   * 내 팀 목록 조회
-   */
-  getTeam: async (): Promise<ApiResponse<GetTeamRes[]>> => {
-    const response = await teamApi.get<ApiResponse<GetTeamRes[]>>(
-      `${API_PREFIX}`
+      `${API_PREFIX}/${teamId}/members/${memberId}`,
     );
     return response.data;
   },

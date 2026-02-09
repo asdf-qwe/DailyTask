@@ -40,14 +40,14 @@ public class ApiV1ChannelController {
         );
     }
 
-    @DeleteMapping("/{teamId}/{channelId}")
-    public ResponseEntity<Void> deleteChannel(
+    @DeleteMapping("/{teamId}/channels/{channelId}")
+    public ResponseEntity<ApiResponse<Boolean>> deleteChannel(
             @PathVariable Long teamId,
             @PathVariable Long channelId,
             @AuthenticationPrincipal SecurityUser user
     ) {
 
         channelService.deleteChannel(teamId, channelId, user);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.ok(true));
     }
 }

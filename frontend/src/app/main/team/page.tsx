@@ -51,6 +51,7 @@ export default function TeamPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -59,6 +60,7 @@ export default function TeamPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMemberListRes[]>([]);
   const [newTeam, setNewTeam] = useState({ name: "", description: "" });
+  const [editTeam, setEditTeam] = useState({ name: "", description: "" });
 
   // 팀 목록 불러오기
   useEffect(() => {
@@ -117,7 +119,7 @@ export default function TeamPage() {
     return teamMembers.filter(
       (member) =>
         member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase())
+        member.email.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [teamMembers, searchQuery]);
 
@@ -127,7 +129,7 @@ export default function TeamPage() {
       totalTeams: teams.length,
       totalMembers: teams.reduce(
         (sum, team) => sum + (team.memberCount ?? 0),
-        0
+        0,
       ),
       ownedTeams: teams.filter((t) => t.role === Role.OWNER).length,
       participatingTeams: teams.filter((t) => t.role === Role.MEMBER).length,
@@ -157,7 +159,7 @@ export default function TeamPage() {
           }));
           setTeams(convertedTeams);
           const newCreatedTeam = convertedTeams.find(
-            (t) => t.id === response.data.id
+            (t) => t.id === response.data.id,
           );
           if (newCreatedTeam) {
             setSelectedTeam(newCreatedTeam);
@@ -258,7 +260,7 @@ export default function TeamPage() {
       try {
         const response = await teamService.deleteMember(
           selectedTeam.id,
-          memberId
+          memberId,
         );
         if (response.success) {
           setTeamMembers(teamMembers.filter((m) => m.memberId !== memberId));
@@ -269,8 +271,48 @@ export default function TeamPage() {
         alert("멤버 제거에 실패했습니다.");
       }
     },
-    [selectedTeam, teamMembers]
+    [selectedTeam, teamMembers],
   );
+
+  const handleEditTeam = useCallback(() => {
+    if (!selectedTeam) return;
+    setEditTeam({
+      name: selectedTeam.name,
+      description: selectedTeam.description,
+    });
+    setShowEditModal(true);
+  }, [selectedTeam]);
+
+  const handleUpdateTeam = useCallback(async () => {
+    if (!selectedTeam || !editTeam.name.trim()) return;
+
+    try {
+      const response = await teamService.updateTeam(selectedTeam.id, editTeam);
+      if (response.success) {
+        alert("팀 정보가 수정되었습니다.");
+        setShowEditModal(false);
+
+        // 팀 목록 새로고침
+        const teamsResponse = await teamService.getTeam();
+        if (teamsResponse.success) {
+          const convertedTeams: Team[] = teamsResponse.data.map((team) => ({
+            id: team.teamId,
+            name: team.name,
+            description: "",
+            memberCount: team.memberCount ?? 0,
+            createdAt: "",
+            role: Role.MEMBER,
+          }));
+          setTeams(convertedTeams);
+          const updated = convertedTeams.find((t) => t.id === selectedTeam.id);
+          if (updated) setSelectedTeam(updated);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to update team:", error);
+      alert("팀 정보 수정에 실패했습니다.");
+    }
+  }, [selectedTeam, editTeam]);
 
   const getRoleBadge = useCallback((role: Role) => {
     switch (role) {
@@ -349,6 +391,7 @@ export default function TeamPage() {
               onSearchChange={setSearchQuery}
               onInvite={handleGenerateInviteCode}
               onLeave={() => setShowLeaveModal(true)}
+              onEdit={handleEditTeam}
               onRemoveMember={handleRemoveMember}
               getRoleBadge={getRoleBadge}
             />
@@ -398,6 +441,62 @@ export default function TeamPage() {
         onJoin={handleJoinTeam}
         onCodeChange={setJoinCode}
       />
+
+      {/* Edit Team Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              팀 정보 수정
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  팀 이름
+                </label>
+                <input
+                  type="text"
+                  value={editTeam.name}
+                  onChange={(e) =>
+                    setEditTeam({ ...editTeam, name: e.target.value })
+                  }
+                  placeholder="팀 이름을 입력하세요"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:border-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  팀 설명
+                </label>
+                <textarea
+                  value={editTeam.description}
+                  onChange={(e) =>
+                    setEditTeam({ ...editTeam, description: e.target.value })
+                  }
+                  placeholder="팀 설명을 입력하세요"
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:border-gray-900 resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleUpdateTeam}
+                disabled={!editTeam.name.trim()}
+                className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                수정
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

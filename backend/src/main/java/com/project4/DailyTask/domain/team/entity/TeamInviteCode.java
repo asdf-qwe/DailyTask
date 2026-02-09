@@ -14,10 +14,10 @@ import java.util.UUID;
 @Entity
 @Getter@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuperBuilder
 @Table(
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = "team_id")
+                @UniqueConstraint(name = "uk_team_invite_code_team", columnNames = "team_id"),
+                @UniqueConstraint(name = "uk_team_invite_code_code", columnNames = "code")
         }
 )
 public class TeamInviteCode extends BaseEntity {

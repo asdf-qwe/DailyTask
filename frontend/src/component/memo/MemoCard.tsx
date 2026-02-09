@@ -27,9 +27,6 @@ const MemoCard = memo(({ memo, onClick }: MemoCardProps) => {
             <MoreVertical className="w-4 h-4 text-gray-400" />
           </button>
         </div>
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-          {memo.preview}
-        </p>
         <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-2">
             <span className="font-medium">{memo.authorName}</span>

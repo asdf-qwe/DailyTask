@@ -69,5 +69,5 @@ export interface UpdateTeamRes {
 export interface GetTeamRes {
   teamId: number;
   name: string;
-  memberCount: number; // 추가
+  memberCount: number;
 }

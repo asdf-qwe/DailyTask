@@ -1,6 +1,7 @@
 package com.project4.DailyTask.team;
 
 import com.project4.DailyTask.domain.team.dto.TeamListRes;
+import com.project4.DailyTask.domain.team.entity.Role;
 import com.project4.DailyTask.domain.team.entity.Team;
 import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
@@ -17,6 +18,7 @@ import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,30 +32,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class TeamPerfServiceTest {
 
-    private final TeamPerfService teamPerfService;
-    private final TeamRepository teamRepository;
-    private final TeamMemberRepository teamMemberRepository;
-    private final UserRepository userRepository;
-    private final EntityManagerFactory emf;
-    private final EntityManager em;
+    @Autowired
+    EntityManagerFactory emf;
+
+    @Autowired
+    EntityManager em;
+
+    @Autowired
+    TeamRepository teamRepository;
+
+    @Autowired
+    TeamMemberRepository teamMemberRepository;
+
+    @Autowired
+    UserRepository userRepository;
+
+    @Autowired
+    TeamPerfService teamPerfService;
 
     private Statistics statistics;
-
-    TeamPerfServiceTest(
-            TeamPerfService teamPerfService,
-            TeamRepository teamRepository,
-            TeamMemberRepository teamMemberRepository,
-            UserRepository userRepository,
-            EntityManagerFactory emf,
-            EntityManager em
-    ) {
-        this.teamPerfService = teamPerfService;
-        this.teamRepository = teamRepository;
-        this.teamMemberRepository = teamMemberRepository;
-        this.userRepository = userRepository;
-        this.emf = emf;
-        this.em = em;
-    }
 
     @BeforeEach
     void setUp() {
@@ -64,9 +61,9 @@ class TeamPerfServiceTest {
     }
 
     @Test
-    @DisplayName("N+1 버전: team 조회 1회 + teamMembers 조회가 team 수만큼 추가 발생한다")
+    @DisplayName("N+1 재현: 팀 목록 조회 시 팀 수만큼 teamMembers 추가 쿼리가 발생한다")
     @Transactional
-    void nPlusOne_queryCount_increases_by_teamCount() {
+    void listTeams_nPlusOne_queryCount_increases_by_teamCount() {
 
         int teamCount = 30;
         int membersPerTeam = 10;
@@ -74,7 +71,6 @@ class TeamPerfServiceTest {
 
         em.flush();
         em.clear();
-
         statistics.clear();
 
         List<TeamListRes> result = teamPerfService.listTeamsNPlusOne();
@@ -86,9 +82,9 @@ class TeamPerfServiceTest {
     }
 
     @Test
-    @DisplayName("Fetch Join 버전: team + teamMembers를 1회(또는 1~2회) 쿼리로 로딩한다")
+    @DisplayName("개선 후(fetch join): 팀 + 팀원 조회가 1~2회 쿼리로 끝난다")
     @Transactional
-    void fetchJoin_queryCount_is_small() {
+    void listTeams_fetchJoin_queryCount_is_small() {
 
         int teamCount = 30;
         int membersPerTeam = 10;
@@ -96,7 +92,6 @@ class TeamPerfServiceTest {
 
         em.flush();
         em.clear();
-
         statistics.clear();
 
         List<TeamListRes> result = teamPerfService.listTeamsFetchJoin();
@@ -109,26 +104,18 @@ class TeamPerfServiceTest {
 
     private void seedTeams(int teamCount, int membersPerTeam) {
         for (int i = 1; i <= teamCount; i++) {
-            Team team = Team.builder()
-                    .name("team-" + i)
-                    .description("desc-" + i)
-                    .build();
+            Team team = Team.createTeam("team-" + i, "desc-" + i);
             teamRepository.save(team);
 
             for (int j = 1; j <= membersPerTeam; j++) {
-                User user = createUser("user-" + i + "-" + j);
+                User user = createUser("u" + i + "_" + j);
 
-                TeamMember tm = new TeamMember();
-                tm.setTeam(team);
-                tm.setUser(user);
-                tm.setJoinedAt(LocalDateTime.now());
-
+                TeamMember tm = TeamMember.createTeamMember(team, user, Role.MEMBER, LocalDateTime.now());
 
                 teamMemberRepository.save(tm);
             }
         }
     }
-
 
     private User createUser(String key) {
         User user = User.builder()

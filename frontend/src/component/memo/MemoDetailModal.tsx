@@ -6,11 +6,12 @@ interface MemoDetailModalProps {
   show: boolean;
   memo: MemoRes | null;
   onClose: () => void;
+  onEdit: (memo: MemoRes) => void;
   onDelete: (id: number) => void;
 }
 
 const MemoDetailModal = memo(
-  ({ show, memo, onClose, onDelete }: MemoDetailModalProps) => {
+  ({ show, memo, onClose, onEdit, onDelete }: MemoDetailModalProps) => {
     if (!show || !memo) return null;
 
     return (
@@ -42,7 +43,10 @@ const MemoDetailModal = memo(
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <button
+                onClick={() => onEdit(memo)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
                 <Edit className="w-5 h-5 text-gray-600" />
               </button>
               <button
@@ -69,7 +73,7 @@ const MemoDetailModal = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 MemoDetailModal.displayName = "MemoDetailModal";
