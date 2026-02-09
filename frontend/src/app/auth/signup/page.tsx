@@ -64,6 +64,7 @@ export default function SignupPage() {
 
     try {
       const response = await authService.checkLoginId(formData.loginId);
+      console.log('아이디 중복 확인 응답:', response);
       if (response.success) {
         setValidation((prev) => ({
           ...prev,
@@ -74,13 +75,16 @@ export default function SignupPage() {
           },
         }));
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('아이디 중복 확인 에러:', err);
+      console.error('에러 응답:', err.response);
+      const errorMessage = err.response?.data?.message || "이미 사용 중인 아이디입니다";
       setValidation((prev) => ({
         ...prev,
         loginId: {
           checked: true,
           available: false,
-          message: "이미 사용 중인 아이디입니다",
+          message: errorMessage,
         },
       }));
     }
@@ -115,6 +119,7 @@ export default function SignupPage() {
 
     try {
       const response = await authService.checkEmail(formData.email);
+      console.log('이메일 중복 확인 응답:', response);
       if (response.success) {
         setValidation((prev) => ({
           ...prev,
@@ -125,13 +130,16 @@ export default function SignupPage() {
           },
         }));
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('이메일 중복 확인 에러:', err);
+      console.error('에러 응답:', err.response);
+      const errorMessage = err.response?.data?.message || "이미 사용 중인 이메일입니다";
       setValidation((prev) => ({
         ...prev,
         email: {
           checked: true,
           available: false,
-          message: "이미 사용 중인 이메일입니다",
+          message: errorMessage,
         },
       }));
     }
@@ -147,7 +155,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (formData.email && !validation.email.available) {
+    if (!validation.email.available) {
       setError("이메일 중복 확인을 해주세요");
       return;
     }
@@ -162,14 +170,19 @@ export default function SignupPage() {
       return;
     }
 
+    if (!formData.nickname.trim()) {
+      setError("닉네임을 입력해주세요");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const signupData = {
         loginId: formData.loginId,
         password: formData.password,
-        email: formData.email || undefined,
-        nickname: formData.nickname || undefined,
+        email: formData.email,
+        nickname: formData.nickname,
       };
 
       const response = await authService.signup(signupData);
@@ -322,7 +335,7 @@ export default function SignupPage() {
             {/* 이메일 */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
-                이메일
+                이메일 <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -334,19 +347,18 @@ export default function SignupPage() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="이메일을 입력하세요 (선택)"
+                    placeholder="이메일을 입력하세요"
+                    required
                     className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-gray-900 transition-colors"
                   />
                 </div>
-                {formData.email && (
-                  <button
-                    type="button"
-                    onClick={checkEmail}
-                    className="px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 whitespace-nowrap"
-                  >
-                    중복 확인
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={checkEmail}
+                  className="px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 whitespace-nowrap"
+                >
+                  중복 확인
+                </button>
               </div>
               {validation.email.checked && (
                 <p
@@ -369,7 +381,7 @@ export default function SignupPage() {
             {/* 닉네임 */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
-                닉네임
+                닉네임 <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -380,7 +392,8 @@ export default function SignupPage() {
                   name="nickname"
                   value={formData.nickname}
                   onChange={handleChange}
-                  placeholder="닉네임을 입력하세요 (선택)"
+                  placeholder="닉네임을 입력하세요"
+                  required
                   className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-gray-900 transition-colors"
                 />
               </div>

@@ -14,6 +14,12 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor
+@Table(
+        name = "team_member",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_team_member_team_user", columnNames = {"team_id", "user_id"})
+        }
+)
 public class TeamMember{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -71,15 +77,12 @@ public class TeamMember{
         this.teamStatus = TeamStatus.LEFT;
     }
 
-    public void changeTeam(Team team){
-        this.team = team;
-    }
-    public void changeUser(User user){
-        this.user = user;
-    }
-
     public void leave() {
         if (this.role == Role.OWNER) throw new ApiException(ErrorCode.CANNOT_KICK_SELF);
         this.teamStatus = TeamStatus.LEFT;
+    }
+
+    public boolean isOwner(Role role){
+        return this.role == Role.OWNER;
     }
 }

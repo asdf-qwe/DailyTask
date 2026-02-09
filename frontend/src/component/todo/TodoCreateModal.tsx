@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { X } from "lucide-react";
+import { X, Users } from "lucide-react";
 
 interface TodoCreateModalProps {
   show: boolean;
@@ -7,6 +7,8 @@ interface TodoCreateModalProps {
     title: string;
     dueDate: string;
   };
+  isTeamMode?: boolean;
+  teamName?: string;
   onClose: () => void;
   onCreate: () => void;
   onFormChange: (data: { title: string; dueDate: string }) => void;
@@ -16,6 +18,8 @@ const TodoCreateModal = memo(
   ({
     show,
     formData,
+    isTeamMode = false,
+    teamName = "",
     onClose,
     onCreate,
     onFormChange,
@@ -26,7 +30,15 @@ const TodoCreateModal = memo(
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-xl max-w-md w-full">
           <div className="border-b border-gray-200 p-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">새 Todo 추가</h2>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">새 Todo 추가</h2>
+              {isTeamMode && teamName && (
+                <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                  <Users className="w-4 h-4" />
+                  {teamName} 팀 Todo
+                </p>
+              )}
+            </div>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg"
@@ -81,7 +93,7 @@ const TodoCreateModal = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 TodoCreateModal.displayName = "TodoCreateModal";

@@ -1,5 +1,6 @@
 package com.project4.DailyTask.domain.todo.repository;
 
+import com.project4.DailyTask.domain.todo.dto.TodoSummary;
 import com.project4.DailyTask.domain.todo.entity.QTodo;
 import com.project4.DailyTask.domain.todo.entity.Todo;
 import com.project4.DailyTask.domain.todo.entity.TodoStatus;
@@ -8,6 +9,7 @@ import com.project4.DailyTask.global.exception.ErrorCode;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,16 +29,16 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<Todo> searchMyTodos(Long userId, LocalDate date, TodoStatus status, Pageable pageable) {
-        return searchTodos(userId, null, date, status, pageable);
+    public Page<TodoSummary> searchMyTodos(Long userId, LocalDate date, TodoStatus status, Pageable pageable) {
+        return searchTodosDto(userId, null, date, status, pageable);
     }
 
     @Override
-    public Page<Todo> searchTeamTodos(Long teamId, LocalDate date, TodoStatus status, Pageable pageable) {
-        return searchTodos(null, teamId, date, status, pageable);
+    public Page<TodoSummary> searchTeamTodos(Long teamId, LocalDate date, TodoStatus status, Pageable pageable) {
+        return searchTodosDto(null, teamId, date, status, pageable);
     }
 
-    private Page<Todo> searchTodos(Long userId, Long teamId, LocalDate date, TodoStatus status, Pageable pageable) {
+    private Page<TodoSummary> searchTodosDto(Long userId, Long teamId, LocalDate date, TodoStatus status, Pageable pageable) {
         QTodo t = QTodo.todo;
 
         BooleanBuilder where = new BooleanBuilder();
@@ -57,8 +59,15 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
             where.and(t.dueDate.eq(date));
         }
 
-        List<Todo> content = queryFactory
-                .selectFrom(t)
+        List<TodoSummary> content = queryFactory
+                .select(com.querydsl.core.types.Projections.constructor(
+                        TodoSummary.class,
+                        t.id,
+                        t.title,
+                        t.dueDate,
+                        t.todoStatus
+                ))
+                .from(t)
                 .where(where)
                 .orderBy(toOrderSpecifiers(pageable, t))
                 .offset(pageable.getOffset())
@@ -88,9 +97,7 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
                 case "dueDate" -> orders.add(new OrderSpecifier<>(direction, t.dueDate));
                 case "todoStatus" -> orders.add(new OrderSpecifier<>(direction, t.todoStatus));
                 case "createdAt" -> orders.add(new OrderSpecifier<>(direction, t.createdAt));
-                default -> {
-                    throw new ApiException(ErrorCode.UNSUPPORTED_SORT);
-                }
+                default -> throw new ApiException(ErrorCode.UNSUPPORTED_SORT);
             }
         }
 

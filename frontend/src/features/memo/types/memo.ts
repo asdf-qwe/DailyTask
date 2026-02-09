@@ -8,7 +8,7 @@ export interface MemoAuthor {
 export interface CreateMemoReq {
   title: string;
   content: string;
-  sharedToTeam?: boolean;
+  sharedToTeam: boolean;
 }
 
 // 메모 생성 응답 DTO
@@ -26,10 +26,9 @@ export interface CreateMemoRes {
 export interface MemoSummary {
   id: number;
   title: string;
-  preview: string;
   authorName: string;
   sharedToTeam: boolean;
-  createdAt: string; // ISO 8601 형식
+  createdAt: string; // LocalDate -> ISO 8601 형식 (YYYY-MM-DD)
 }
 
 // 메모 리스트 응답 DTO (페이징 포함)
@@ -62,7 +61,7 @@ export interface MemoSearchCond {
 export interface UpdateMemoReq {
   title: string;
   content: string;
-  sharedToTeam?: boolean;
+  sharedToTeam: boolean;
 }
 
 // 메모 수정 응답 DTO

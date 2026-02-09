@@ -3,6 +3,7 @@ package com.project4.DailyTask.domain.message.service;
 
 import com.project4.DailyTask.domain.channel.entity.Channel;
 import com.project4.DailyTask.domain.channel.repository.ChannelRepository;
+import com.project4.DailyTask.domain.message.dto.MessageAuthor;
 import com.project4.DailyTask.domain.message.dto.MessageRes;
 import com.project4.DailyTask.domain.message.dto.SendMessageDto;
 import com.project4.DailyTask.domain.message.entity.Message;
@@ -38,28 +39,35 @@ public class ApiV1MessageService {
 
     @Transactional
     public void sendMessage(Long channelId, SecurityUser user, SendMessageDto dto){
-        Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new ApiException(ErrorCode.CHANNEL_NOT_FOUND));
+        Channel channel = findChannelOrThrow(channelId);
 
         User sender = userRepository.findByIdAndStatus(user.getId(), Status.ACTIVE)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         Team team = channel.getTeam();
+        checkMember(team, user);
+        Message message = Message.createMessage(channel, sender, dto.content(), sender.getNickname(), sender.getId());
+        messageRepository.save(message);
+        createNotification(team, sender);
+
+        MessageRes res = new MessageRes(
+                message.getId(),
+                channelId,
+                new MessageAuthor(user.getId(), user.getNickname()),
+                message.getContent(),
+                message.getCreatedAt()
+        );
+
+        messagingTemplate.convertAndSend("/topic/channel/" + channelId, res);
+    }
+
+    private void checkMember(Team team, SecurityUser user){
         boolean isMember = teamMemberRepository.existsByTeamIdAndUserId(team.getId(), user.getId());
         if (!isMember) {
             throw new ApiException(ErrorCode.CHANNEL_MESSAGE_FORBIDDEN);
         }
-
-        Message message = Message.builder()
-                .channel(channel)
-                .user(sender)
-                .content(dto.getContent())
-                .authorNicknameSnapshot(sender.getNickname())
-                .authorIdSnapshot(sender.getId())
-                .build();
-
-        messageRepository.save(message);
-
+    }
+    private void createNotification(Team team, User user){
         List<Long> receiverIds = teamMemberRepository.findAllByTeamIdWithUser(team.getId()).stream()
                 .map(tm -> tm.getUser().getId())
                 .filter(id -> !id.equals(user.getId()))
@@ -74,30 +82,22 @@ public class ApiV1MessageService {
                     team.getId()
             );
         }
-
-        MessageRes res = new MessageRes(
-                message.getId(),
-                channelId,
-                new MessageRes.Author(user.getId(), user.getNickname()),
-                message.getContent(),
-                message.getCreatedAt()
-        );
-
-        messagingTemplate.convertAndSend("/topic/channel/" + channelId, res);
     }
 
+    private Channel findChannelOrThrow(Long channelId){
+        return channelRepository.findById(channelId)
+                .orElseThrow(()-> new ApiException(ErrorCode.CHANNEL_NOT_FOUND));
+    }
 
     @Transactional
     public List<MessageRes> getChatHistory(Long channelId, SecurityUser user){
-        Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(()-> new ApiException(ErrorCode.CHANNEL_NOT_FOUND));
-
+        Channel channel = findChannelOrThrow(channelId);
         Team team = channel.getTeam();
-        boolean isMember = teamMemberRepository.existsByTeamIdAndUserId(team.getId(), user.getId());
-        if (!isMember) {
-            throw new ApiException(ErrorCode.CHANNEL_MESSAGE_FORBIDDEN);
-        }
+        checkMember(team, user);
+        return getMessages(channel);
+    }
 
+    private List<MessageRes> getMessages(Channel channel){
         return messageRepository.findByChannelOrderByCreatedAtDesc(channel, PageRequest.of(0, 50)).stream()
                 .map(entity -> {
                     var u = entity.getUser();
@@ -106,8 +106,8 @@ public class ApiV1MessageService {
                     String authorName;
 
                     if (u == null) {
-                        authorId = entity.getAuthorIdSnapshot(); // null일 수도 있음
-                        authorName = entity.getAuthorNicknameSnapshot(); // or "알 수 없음"
+                        authorId = entity.getAuthorIdSnapshot();
+                        authorName = entity.getAuthorNicknameSnapshot();
                     } else if (u.getStatus() == Status.DELETED) {
                         authorId = entity.getAuthorIdSnapshot();
                         authorName = "탈퇴한 사용자";
@@ -116,13 +116,13 @@ public class ApiV1MessageService {
                         authorName = u.getNickname();
                     }
 
-                    return MessageRes.builder()
-                            .id(entity.getId())
-                            .channelId(channelId)
-                            .author(new MessageRes.Author(authorId, authorName))
-                            .content(entity.getContent())
-                            .createdAt(entity.getCreatedAt())
-                            .build();
+                    return new MessageRes(
+                            entity.getId(),
+                            channel.getId(),
+                            new MessageAuthor(authorId, authorName),
+                            entity.getContent(),
+                            entity.getCreatedAt()
+                    );
                 })
                 .toList();
     }

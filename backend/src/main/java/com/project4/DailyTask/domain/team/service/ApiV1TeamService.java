@@ -8,6 +8,7 @@ import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.domain.team.repository.TeamRepository;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
+import com.project4.DailyTask.global.checker.TeamMemberChecker;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
@@ -29,6 +30,7 @@ public class ApiV1TeamService {
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final TeamInviteCodeRepository teamInviteCodeRepository;
+    private final TeamMemberChecker teamMemberChecker;
 
     @Transactional
     public CreateTeamResponse createTeam(CreateTeamRequest dto, SecurityUser user) {
@@ -75,7 +77,7 @@ public class ApiV1TeamService {
     private void validateOwner(Long teamId, SecurityUser user){
         boolean isOwner = teamMemberRepository.existsByTeamIdAndUserIdAndRoleAndTeamStatus(teamId, user.getId(), Role.OWNER, TeamStatus.JOINED);
         if (!isOwner) {
-            throw new ApiException(ErrorCode.ADMIN_AUTH_REQUIRED);
+            throw new ApiException(ErrorCode.ADMIN_PERMISSION_REQUIRED);
         }
     }
     public List<GetTeamRes> getTeam(SecurityUser user) {
@@ -86,12 +88,11 @@ public class ApiV1TeamService {
     public JoinTeamResponse joinTeam(JoinTeamRequest dto, SecurityUser user) {
 
         TeamInviteCode inviteCode = findValidInviteCode(dto.inviteCode());
-
         Team team = inviteCode.getTeam();
 
         TeamMember member = teamMemberRepository.findByTeamIdAndUserId(team.getId(), user.getId())
                 .map(this::rejoinOrFail)
-                .orElseGet(() -> createNewMember(team, user.getId()));
+                .orElseGet(() -> createNewMemberSafely(team, user.getId()));
 
         return new JoinTeamResponse(team.getId(), team.getName(), member.getRole());
     }
@@ -114,10 +115,17 @@ public class ApiV1TeamService {
         return oldMember;
     }
 
-    private TeamMember createNewMember(Team team, Long userId) {
-        User ref = userRepository.getReferenceById(userId);
-        TeamMember newMember = TeamMember.createTeamMember(team, ref, Role.MEMBER, LocalDateTime.now());
-        return teamMemberRepository.save(newMember);
+    private TeamMember createNewMemberSafely(Team team, Long userId) {
+        try {
+            User ref = userRepository.getReferenceById(userId);
+            TeamMember newMember = TeamMember.createTeamMember(team, ref, Role.MEMBER, LocalDateTime.now());
+            return teamMemberRepository.save(newMember);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+
+            TeamMember existing = teamMemberRepository.findByTeamIdAndUserId(team.getId(), userId)
+                    .orElseThrow(() -> e);
+            return rejoinOrFail(existing);
+        }
     }
 
     @Transactional
@@ -135,15 +143,9 @@ public class ApiV1TeamService {
 
     @Transactional
     public void leftTeam(Long teamId, SecurityUser user) {
-        TeamMember member = findTeamMemberOrThrow(teamId, user.getId());
+        TeamMember member = teamMemberChecker.findMemberOrThrow(teamId, user.getId());
         member.leave();
     }
-
-    private TeamMember findTeamMemberOrThrow(Long teamId, Long userId) {
-        return teamMemberRepository.findByTeamIdAndUserId(teamId, userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
-    }
-
 
     public List<TeamMemberListRes> getTeamMembers(Long teamId, SecurityUser user) {
 
@@ -158,7 +160,7 @@ public class ApiV1TeamService {
     @Transactional
     public void deleteMember(Long teamId, SecurityUser user, Long targetUserId){
         validateMemberDeleteAuthority(teamId,user,targetUserId);
-        TeamMember member = findJoinedMemberOrThrow(teamId, targetUserId);
+        TeamMember member = teamMemberChecker.findMemberOrThrow(teamId, user.getId());
         member.leftMember();
     }
 
@@ -176,8 +178,4 @@ public class ApiV1TeamService {
         }
     }
 
-    private TeamMember findJoinedMemberOrThrow(Long teamId, Long targetUserId) {
-        return teamMemberRepository.findByTeamIdAndUserIdAndTeamStatus(teamId, targetUserId, TeamStatus.JOINED)
-                .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
-    }
 }

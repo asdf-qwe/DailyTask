@@ -23,60 +23,26 @@ public class ApiV1NotificationService {
     private final UserRepository userRepository;
 
     public List<NotificationRes> getNotifications(SecurityUser user, Boolean onlyUnread) {
-
-        List<Notification> notifications =
-                Boolean.TRUE.equals(onlyUnread)
-                        ? notificationRepository
-                        .findAllByUserIdAndReadFalseOrderByCreatedAtDesc(user.getId())
-                        : notificationRepository
-                        .findAllByUserIdOrderByCreatedAtDesc(user.getId());
-
-        return notifications.stream()
-                .map(NotificationRes::from)
-                .toList();
+        return notificationRepository.findNotifications(user.getId(), Boolean.TRUE.equals(onlyUnread));
     }
 
     @Transactional
-    public void create(
-            Long receiverId,
-            NotificationType type,
-            String message,
-            Long relatedMemoId,
-            Long relatedTeamId
-    ) {
-        Notification notification = Notification.builder()
-                .user(userRepository.getReferenceById(receiverId))
-                .type(type)
-                .message(message)
-                .relatedMemoId(relatedMemoId)
-                .relatedTeamId(relatedTeamId)
-                .read(false)
-                .build();
+    public void createToMany(List<Long> receiverIds, NotificationType type, String message,
+                             Long relatedMemoId, Long relatedTeamId) {
+        List<Notification> notifications = createMany(receiverIds, type, message, relatedMemoId, relatedTeamId);
 
-        notificationRepository.save(notification);
-    }
-
-    @Transactional
-    public void createToMany(
-            List<Long> receiverIds,
-            NotificationType type,
-            String message,
-            Long relatedMemoId,
-            Long relatedTeamId
-    ) {
-        List<Notification> notifications = receiverIds.stream()
-                .distinct()
-                .map(id -> Notification.builder()
-                        .user(userRepository.getReferenceById(id))
-                        .type(type)
-                        .message(message)
-                        .relatedMemoId(relatedMemoId)
-                        .relatedTeamId(relatedTeamId)
-                        .read(false)
-                        .build()
-                )
-                .collect(Collectors.toList());
         notificationRepository.saveAll(notifications);
+    }
+
+    private List<Notification> createMany(List<Long> receiverIds, NotificationType type, String message,
+                                          Long relatedMemoId, Long relatedTeamId) {
+        return receiverIds.stream()
+                .distinct()
+                .map(id -> Notification.createNotification(
+                        userRepository.getReferenceById(id),
+                        type, message, relatedMemoId, relatedTeamId
+                ))
+                .toList();
     }
 
     @Transactional

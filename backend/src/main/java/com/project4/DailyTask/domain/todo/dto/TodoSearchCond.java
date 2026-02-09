@@ -7,9 +7,5 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
-public class TodoSearchCond {
-    private LocalDate date;
-    private TodoStatus status;
-}
+
+public record TodoSearchCond (LocalDate date, TodoStatus status) {}

@@ -1,5 +1,5 @@
 // 메시지 작성자 정보
-export interface Author {
+export interface MessageAuthor {
   id: number;
   name: string;
 }
@@ -8,7 +8,7 @@ export interface Author {
 export interface MessageRes {
   id: number;
   channelId: number;
-  author: Author;
+  author: MessageAuthor;
   content: string;
   createdAt: string; // LocalDateTime -> ISO 8601 문자열
 }

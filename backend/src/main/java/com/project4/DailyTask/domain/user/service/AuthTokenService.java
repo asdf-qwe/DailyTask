@@ -20,34 +20,28 @@ public class AuthTokenService {
     @Value("${custom.refreshToken.expirationSeconds}")
     private long refreshTokenExpirationSeconds;
 
-    public String genAccessToken(User user){
+    public String genAccessToken(User user) {
         return jwtUtil.generateToken(
                 accessTokenExpirationSeconds,
                 Map.of(
                         "userId", user.getId(),
-                        "email", user.getEmail(),
-                        "nickname", user.getNickname(),
-                        "role", user.getRole()
+                        "role", user.getRole().name()
                 )
         );
     }
 
-    public String genRefreshToken(User user){
+    public String genRefreshToken(User user) {
         return jwtUtil.generateToken(
                 refreshTokenExpirationSeconds,
-                Map.of(
-                        "userId", user.getId(),
-                        "email", user.getEmail()
-                )
+                Map.of("userId", user.getId())
         );
     }
 
-    public boolean isValid (String token){
+    public boolean isValid(String token) {
         return jwtUtil.isValid(token);
     }
 
-    public Map<String, Object> payload(String token){
+    public Map<String, Object> payload(String token) {
         return jwtUtil.getPayload(token);
     }
-
 }

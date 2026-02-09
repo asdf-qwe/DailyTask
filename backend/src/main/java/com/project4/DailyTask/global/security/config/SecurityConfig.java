@@ -27,35 +27,42 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final Rq rq;
+    private final CustomAuthenticationFilter customAuthenticationFilter;
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public CustomAuthenticationFilter customAuthenticationFilter() { return new CustomAuthenticationFilter(rq);}
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(configurationSource()))
-                .sessionManagement(config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
+                        // 공개 API
                         .requestMatchers(
                                 "/api/v1/users/signup",
-                                "/api/v1/users/login",
-                                "/api/v1/users/refresh"
+                                "/api/v1/users/check-email",
+                                "/api/v1/users/check-loginId",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/refresh"
                         ).permitAll()
-                        .requestMatchers("/actuator/health")
-                        .permitAll()
+
+                        // 헬스 체크
+                        .requestMatchers("/actuator/health").permitAll()
+
+                        // 나머지 API는 인증 필요
                         .requestMatchers("/api/**").authenticated()
+
+                        // 그 외는 허용
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+
+                // 인증 필터
+                .addFilterBefore(customAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

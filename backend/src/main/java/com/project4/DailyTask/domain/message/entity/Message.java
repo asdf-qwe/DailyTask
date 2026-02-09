@@ -7,7 +7,6 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 @Entity
@@ -32,4 +31,15 @@ public class Message extends BaseEntity {
 
     @Column(name = "author_id_snapshot")
     private Long authorIdSnapshot;
+
+    public static Message createMessage(Channel channel, User user, String content,
+                                 String authorNicknameSnapshot, Long authorIdSnapshot){
+        Message m = new Message();
+        m.channel = channel;
+        m.user = user;
+        m.content = content;
+        m.authorNicknameSnapshot = authorNicknameSnapshot;
+        m.authorIdSnapshot = authorIdSnapshot;
+        return m;
+    }
 }

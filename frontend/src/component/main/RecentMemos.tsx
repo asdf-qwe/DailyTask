@@ -33,9 +33,6 @@ const RecentMemos = memo(function RecentMemos({ memos }: RecentMemosProps) {
                   <div className="font-medium text-gray-900 text-sm mb-1">
                     {memo.title}
                   </div>
-                  <div className="text-xs text-gray-600 mb-2 line-clamp-1">
-                    {memo.preview}
-                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">
                       {memo.authorName}

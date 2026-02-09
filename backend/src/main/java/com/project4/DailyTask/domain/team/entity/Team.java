@@ -13,12 +13,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Getter@Setter
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuperBuilder
 public class Team extends BaseEntity {
 
     @Column(name = "name", nullable = false, length = 30)
@@ -28,7 +28,7 @@ public class Team extends BaseEntity {
     private String description;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<TeamMember> teamMembers;
+    private List<TeamMember> teamMembers = new ArrayList<>();
 
     public void changeTeamName(String name) {
         String v = name.trim();

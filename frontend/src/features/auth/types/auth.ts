@@ -8,8 +8,8 @@ export interface LoginRequestDto {
 export interface SignupRequestDto {
   loginId: string;
   password: string;
-  email?: string;
-  nickname?: string;
+  email: string;
+  nickname: string;
 }
 
 // 토큰 응답 DTO

@@ -13,7 +13,7 @@ export interface NotificationRes {
   message: string;
   relatedMemoId: number | null;
   relatedTeamId: number | null;
-  isRead: boolean;
+  read: boolean;
   createdAt: string; // ISO 8601 형식
 }
 

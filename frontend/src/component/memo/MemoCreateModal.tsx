@@ -10,6 +10,7 @@ interface MemoCreateModalProps {
   };
   teams: { teamId: number; name: string }[];
   teamId: number | null;
+  isEditMode?: boolean;
   onClose: () => void;
   onSave: () => void;
   onFormChange: (data: any) => void;
@@ -22,6 +23,7 @@ const MemoCreateModal = memo(
     formData,
     teams,
     teamId,
+    isEditMode = false,
     onClose,
     onSave,
     onFormChange,
@@ -33,7 +35,9 @@ const MemoCreateModal = memo(
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">새 메모 작성</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {isEditMode ? "메모 수정" : "새 메모 작성"}
+            </h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg"
@@ -139,7 +143,7 @@ const MemoCreateModal = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 MemoCreateModal.displayName = "MemoCreateModal";

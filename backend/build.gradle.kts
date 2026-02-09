@@ -1,6 +1,6 @@
 plugins {
 	java
-	id("org.springframework.boot") version "4.0.0"
+	id("org.springframework.boot") version "3.3.7"
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -39,7 +39,7 @@ dependencies {
 	runtimeOnly("com.mysql:mysql-connector-j")
 
 	// swagger
-	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
 
 	// JWT & JSON
 	implementation("io.jsonwebtoken:jjwt-api:0.12.6")

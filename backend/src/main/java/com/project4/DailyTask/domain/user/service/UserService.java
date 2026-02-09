@@ -17,57 +17,52 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Transactional
-    public User signup(SignupRequestDto req){
-
-        if(userRepository.findByEmail(req.getEmail()).isPresent()){
+    public User signup(SignupRequestDto req) {
+        if (userRepository.existsByEmail(req.email())) {
             throw new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
+        if (userRepository.existsByLoginId(req.loginId())) {
+            throw new ApiException(ErrorCode.LOGIN_ID_ALREADY_EXISTS);
+        }
 
-        User user = User.builder()
-                .loginId(req.getLoginId())
-                .password(passwordEncoder.encode(req.getPassword()))
-                .nickname(req.getNickname())
-                .email(req.getEmail())
-                .profileUrl("example")
-                .status(Status.ACTIVE)
-                .role(UserRole.USER)
-                .build();
+        User user = User.createNew(
+                req.loginId(),
+                req.email(),
+                passwordEncoder.encode(req.password()),
+                req.nickname()
+        );
 
         return userRepository.save(user);
     }
 
-    public boolean existsByEmail(String email){
-        return userRepository.existsByEmail(email);
-    }
-    public boolean existsByLoginId(String loginId){
-        return userRepository.existsByLoginId(loginId);
-    }
-
-    public User findById(Long id){
-        return userRepository.findById(id)
-                .orElseThrow(()-> new ApiException(ErrorCode.USER_NOT_FOUND));
-    }
-
-    @Transactional
-    public void withdraw(SecurityUser securityUser) {
-        User user = findById(securityUser.getId());
-
-        if (user.getStatus() == Status.DELETED) {
-            return;
+    @Transactional(readOnly = true)
+    public void checkEmailAvailable(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
-
-        user.setStatus(Status.DELETED);
-        user.setDeletedAt(LocalDateTime.now());
-
-
-        user.setRefreshToken(null);
     }
 
+    @Transactional(readOnly = true)
+    public void checkLoginIdAvailable(String loginId) {
+        if (userRepository.existsByLoginId(loginId)) {
+            throw new ApiException(ErrorCode.LOGIN_ID_ALREADY_EXISTS);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public User findByIdOrThrow(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    public void withdraw(SecurityUser principal) {
+        User user = findByIdOrThrow(principal.getId());
+        user.withdraw(LocalDateTime.now());
+    }
 }

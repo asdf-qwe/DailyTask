@@ -1,10 +1,11 @@
 package com.project4.DailyTask.team;
 
-import com.project4.DailyTask.domain.team.dto.CreateInviteCodeRequest;
-import com.project4.DailyTask.domain.team.dto.CreateTeamRequest;
 import com.project4.DailyTask.domain.team.dto.JoinTeamRequest;
-import com.project4.DailyTask.domain.team.dto.UpdateTeamReq;
-import com.project4.DailyTask.domain.team.entity.*;
+import com.project4.DailyTask.domain.team.dto.JoinTeamResponse;
+import com.project4.DailyTask.domain.team.entity.Role;
+import com.project4.DailyTask.domain.team.entity.Team;
+import com.project4.DailyTask.domain.team.entity.TeamInviteCode;
+import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.repository.TeamInviteCodeRepository;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.domain.team.repository.TeamRepository;
@@ -12,16 +13,17 @@ import com.project4.DailyTask.domain.team.service.ApiV1TeamService;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.entity.UserRole;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
+import com.project4.DailyTask.global.checker.TeamMemberChecker;
+import com.project4.DailyTask.global.exception.ApiException;
+import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,165 +31,161 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TeamServiceUnitTest {
+class TeamServiceUnitTest {
 
-    @Mock
-    private TeamRepository teamRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private TeamMemberRepository teamMemberRepository;
-    @Mock
-    private TeamInviteCodeRepository teamInviteCodeRepository;
-    @InjectMocks
-    private ApiV1TeamService teamService;
-    @Captor
-    private ArgumentCaptor<Team> teamArgumentCaptor;
-    @Captor
-    private ArgumentCaptor<TeamMember> teamMemberArgumentCaptor;
+    @Mock TeamRepository teamRepository;
+    @Mock UserRepository userRepository;
+    @Mock TeamMemberRepository teamMemberRepository;
+    @Mock TeamInviteCodeRepository teamInviteCodeRepository;
+    @Mock TeamMemberChecker teamMemberChecker;
 
-    private SecurityUser user1;
-    private User user2;
-    private CreateTeamRequest dto;
-    private Team team;
-    private CreateInviteCodeRequest createInviteCodeRequest;
-    private JoinTeamRequest joinTeamRequest;
-    private TeamInviteCode inviteCode;
+    @InjectMocks ApiV1TeamService service;
 
-    @BeforeEach
-    void setup(){
-        user1 = new SecurityUser(
-                2L,
-                "user@test.com",
-                "encodedPassword",
-                "Hyun",
-                UserRole.ADMIN,
-                List.of(() -> "ROLE_ADMIN")
+
+    private SecurityUser testUser(Long userId) {
+        return new SecurityUser(
+                userId,
+                "test@test.com",
+                "pw",
+                "tester",
+                UserRole.USER,
+                List.of()
         );
-
-        user2 = User.builder()
-                .id(2L)
-                .email("user2@test.com")
-                .password("encodedPassword")
-                .nickname("hyun2")
-                .role(UserRole.ADMIN)
-                .build();
-
-        team = Team.builder()
-                .id(1L)
-                .name("test")
-                .description("desc")
-                .build();
-
-        inviteCode = TeamInviteCode.builder()
-                .id(1L)
-                .code("testCode")
-                .expiresAt(LocalDateTime.now().plusHours(24))
-                .team(team)
-                .build();
-
-
-        dto = new CreateTeamRequest("test1","description1");
-        createInviteCodeRequest = new CreateInviteCodeRequest(24);
-        joinTeamRequest = new JoinTeamRequest("testCode");
     }
 
     @Test
-    @DisplayName("팀 생성 테스트")
-    public void createTeam_success(){
+    void joinTeam_초대코드없으면_CODE_NOT_FOUND() {
+        // given
+        SecurityUser user = testUser(1L);
+        JoinTeamRequest req = new JoinTeamRequest("INVALID");
 
-    User mockUser = Mockito.mock(User.class);
-    when(mockUser.getId()).thenReturn(user1.getId());
-    when(userRepository.getReferenceById(user1.getId()))
-                .thenReturn(mockUser);
-    when(teamRepository.save(any(Team.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-    teamService.createTeam(dto,user1);
+        when(teamInviteCodeRepository.findByCode("INVALID"))
+                .thenReturn(Optional.empty());
 
-    verify(teamRepository, times(1)).save(teamArgumentCaptor.capture());
-    Team saved = teamArgumentCaptor.getValue();
-    verify(teamMemberRepository, times(1)).save(teamMemberArgumentCaptor.capture());
-    TeamMember memberSaved = teamMemberArgumentCaptor.getValue();
+        // when
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.joinTeam(req, user));
 
-    assertEquals(dto.getName(), saved.getName());
-    assertEquals(user1.getId(), memberSaved.getUser().getId());
-
+        // then
+        assertEquals(ErrorCode.CODE_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
-    @DisplayName("팀 초대코드 생성")
-    public void createCode_success(){
+    void joinTeam_초대코드만료면_INVITE_CODE_EXPIRED() {
+        // given
+        SecurityUser user = testUser(1L);
+        JoinTeamRequest req = new JoinTeamRequest("ABC");
 
-        when(teamRepository.getReferenceById(team.getId()))
-                .thenReturn(team);
+        TeamInviteCode inviteCode = mock(TeamInviteCode.class);
 
-        when(teamRepository.existsById(team.getId())).thenReturn(true);
-        when(teamMemberRepository.existsByTeamIdAndUserIdAndRoleAndTeamStatus(team.getId(), user1.getId(), Role.OWNER, TeamStatus.JOINED))
+        when(teamInviteCodeRepository.findByCode("ABC"))
+                .thenReturn(Optional.of(inviteCode));
+        when(inviteCode.isExpired(any(LocalDateTime.class)))
                 .thenReturn(true);
 
-        teamService.createInviteCode(team.getId(),user1,createInviteCodeRequest);
+        // when
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.joinTeam(req, user));
 
-        verify(teamInviteCodeRepository, times(1)).save(any());
+        // then
+        assertEquals(ErrorCode.INVITE_CODE_EXPIRED, ex.getErrorCode());
     }
 
     @Test
-    @DisplayName("팀 참가 성공 테스트")
-    public void joinTeam_success() {
+    void joinTeam_이미_JOINED_멤버면_ALREADY_TEAM_MEMBER() {
+        // given
+        SecurityUser user = testUser(1L);
+        JoinTeamRequest req = new JoinTeamRequest("ABC");
 
-        when(teamInviteCodeRepository.findByCode(joinTeamRequest.getInviteCode()))
+        Team team = mock(Team.class);
+        when(team.getId()).thenReturn(10L);
+
+        TeamInviteCode inviteCode = mock(TeamInviteCode.class);
+        when(inviteCode.isExpired(any())).thenReturn(false);
+        when(inviteCode.getTeam()).thenReturn(team);
+
+        TeamMember member = mock(TeamMember.class);
+        when(member.isJoined()).thenReturn(true);
+
+        when(teamInviteCodeRepository.findByCode("ABC"))
                 .thenReturn(Optional.of(inviteCode));
+        when(teamMemberRepository.findByTeamIdAndUserId(10L, 1L))
+                .thenReturn(Optional.of(member));
 
-        when(teamMemberRepository.existsByTeamIdAndUserIdAndTeamStatus(team.getId(), user1.getId(),TeamStatus.JOINED))
-                .thenReturn(false);
+        // when
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.joinTeam(req, user));
 
-        when(userRepository.getReferenceById(user1.getId()))
+        // then
+        assertEquals(ErrorCode.ALREADY_TEAM_MEMBER, ex.getErrorCode());
+    }
+
+    @Test
+    void joinTeam_LEFT_멤버면_rejoin된다() {
+
+        SecurityUser user = testUser(1L);
+        JoinTeamRequest req = new JoinTeamRequest("ABC");
+
+        Team team = mock(Team.class);
+        when(team.getId()).thenReturn(10L);
+        when(team.getName()).thenReturn("TEAM");
+
+        TeamInviteCode inviteCode = mock(TeamInviteCode.class);
+        when(inviteCode.isExpired(any())).thenReturn(false);
+        when(inviteCode.getTeam()).thenReturn(team);
+
+        TeamMember oldMember = mock(TeamMember.class);
+        when(oldMember.isJoined()).thenReturn(false);
+        when(oldMember.getRole()).thenReturn(Role.MEMBER);
+
+        when(teamInviteCodeRepository.findByCode("ABC"))
+                .thenReturn(Optional.of(inviteCode));
+        when(teamMemberRepository.findByTeamIdAndUserId(10L, 1L))
+                .thenReturn(Optional.of(oldMember));
+
+        // when
+        JoinTeamResponse res = service.joinTeam(req, user);
+
+        // then
+        verify(oldMember).applyOldMemberUpdate();
+        assertEquals(10L, res.teamId());
+        assertEquals("TEAM", res.teamName());
+        assertEquals(Role.MEMBER, res.role());
+    }
+
+    @Test
+    void joinTeam_신규멤버면_저장된다() {
+        // given
+        SecurityUser user = testUser(1L);
+        JoinTeamRequest req = new JoinTeamRequest("ABC");
+
+        Team team = mock(Team.class);
+        when(team.getId()).thenReturn(10L);
+        when(team.getName()).thenReturn("TEAM");
+
+        TeamInviteCode inviteCode = mock(TeamInviteCode.class);
+        when(inviteCode.isExpired(any())).thenReturn(false);
+        when(inviteCode.getTeam()).thenReturn(team);
+
+        when(teamInviteCodeRepository.findByCode("ABC"))
+                .thenReturn(Optional.of(inviteCode));
+        when(teamMemberRepository.findByTeamIdAndUserId(10L, 1L))
+                .thenReturn(Optional.empty());
+
+        when(userRepository.getReferenceById(1L))
                 .thenReturn(mock(User.class));
 
-        teamService.joinTeam(joinTeamRequest, user1);
+        TeamMember saved = mock(TeamMember.class);
+        when(saved.getRole()).thenReturn(Role.MEMBER);
 
-        verify(teamMemberRepository, times(1)).save(any());
+        when(teamMemberRepository.save(any(TeamMember.class)))
+                .thenReturn(saved);
+
+        // when
+        JoinTeamResponse res = service.joinTeam(req, user);
+
+        // then
+        verify(teamMemberRepository).save(any(TeamMember.class));
+        assertEquals(Role.MEMBER, res.role());
     }
-
-    @Test
-    @DisplayName("팀 정보 수정 테스트")
-    public void updateTeam_success(){
-
-        TeamMember teamMember = new TeamMember();
-        teamMember.setUser(user2);
-        teamMember.setTeam(team);
-        teamMember.setRole(Role.OWNER);
-        teamMember.setTeamStatus(TeamStatus.JOINED);
-
-        UpdateTeamReq req = new UpdateTeamReq("test2", "desc2");
-
-        when(teamMemberRepository.findByTeamIdAndRoleAndTeamStatus(team.getId(), Role.OWNER,teamMember.getTeamStatus()))
-                .thenReturn(Optional.of(teamMember));
-        when(teamRepository.findById(team.getId()))
-                .thenReturn(Optional.ofNullable(team));
-
-        teamService.updateTeam(team.getId(), user1, req);
-
-        assertEquals(req.getName(), team.getName());
-    }
-
-    @Test
-    @DisplayName("팀 멤버 목록 조회")
-    public void getTeamMember_success(){
-
-        TeamMember teamMember = new TeamMember();
-        teamMember.setUser(user2);
-        teamMember.setTeam(team);
-        teamMember.setRole(Role.OWNER);
-        teamMember.setTeamStatus(TeamStatus.JOINED);
-
-        List<TeamMember> teamMembers = new ArrayList<>();
-        teamMembers.add(teamMember);
-
-        when(teamMemberRepository.existsByTeamIdAndUserIdAndTeamStatus(team.getId(),user1.getId(),TeamStatus.JOINED))
-                .thenReturn(true);
-
-        when(teamMemberRepository.findAllByTeamIdWithUser(team.getId())).thenReturn(teamMembers);
-
-    }
-
 }
