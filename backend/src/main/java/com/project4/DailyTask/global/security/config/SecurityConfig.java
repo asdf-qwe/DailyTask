@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        // 공개 API
+
                         .requestMatchers(
                                 "/api/v1/users/signup",
                                 "/api/v1/users/check-email",
@@ -51,17 +51,16 @@ public class SecurityConfig {
                                 "/api/v1/auth/refresh"
                         ).permitAll()
 
-                        // 헬스 체크
                         .requestMatchers("/actuator/health").permitAll()
 
-                        // 나머지 API는 인증 필요
+
                         .requestMatchers("/api/**").authenticated()
 
-                        // 그 외는 허용
+
                         .anyRequest().permitAll()
                 )
 
-                // 인증 필터
+
                 .addFilterBefore(customAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
