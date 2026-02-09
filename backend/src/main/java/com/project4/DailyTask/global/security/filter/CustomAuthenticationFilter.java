@@ -69,13 +69,11 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
 
         String uri = request.getRequestURI();
 
-        // API 아니면 패스
         if (!uri.startsWith("/api/")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 공개 엔드포인트는 인증 시도 자체를 생략(불필요한 파싱/로그 방지)
         if (isPublicPath(uri)) {
             filterChain.doFilter(request, response);
             return;
@@ -89,11 +87,7 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
             }
 
             if (!authTokenService.isValid(token.value())) {
-                // invalid면 쿠키 청소(선택)
                 rq.deleteCookie("accessToken");
-                // refreshToken까지 지울지는 정책 선택인데,
-                // 보통 access만 invalid일 때 refresh까지 날리면 UX 나빠질 수 있어.
-                // rq.deleteCookie("refreshToken");
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -111,7 +105,6 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
             List<GrantedAuthority> authorities =
                     List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
 
-            // AccessToken claim을 최소화했으니 email/nickname은 null로 둠
             SecurityUser principal = new SecurityUser(
                     userId,
                     null,
@@ -130,7 +123,7 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
 
         } catch (Exception e) {
-            // 토큰 파싱/role 변환 등에서 터지면 그냥 익명 처리 + 쿠키 청소(선택)
+
             rq.deleteCookie("accessToken");
         }
 
