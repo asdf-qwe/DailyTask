@@ -49,13 +49,9 @@ jobs:
       contents: read
       packages: write
 
-    # ✅ 변경 1) 이미지 이름을 repo 이름으로 자동 설정 (bearlink 제거)
-    env:
-      DOCKER_IMAGE_NAME: ${{ github.event.repository.name }}
-
     outputs:
-      DOCKER_IMAGE_NAME: ${{ env.DOCKER_IMAGE_NAME }}
-      OWNER_LC: ${{ steps.ownerlc.outputs.owner_lc }}
+      OWNER_LC: ${{ steps.vars.outputs.owner_lc }}
+      REPO_LC: ${{ steps.vars.outputs.repo_lc }}
 
     steps:
       - uses: actions/checkout@v4
@@ -75,11 +71,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set lower case owner name
-        id: ownerlc
-        run: echo "owner_lc=${OWNER,,}" >> $GITHUB_OUTPUT
+      
+      - name: Set lower case vars
+        id: vars
+        shell: bash
+        run: |
+          echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "repo_lc=${GITHUB_EVENT_REPOSITORY_NAME,,}" >> "$GITHUB_OUTPUT"
         env:
-          OWNER: "${{ github.repository_owner }}"
+          GITHUB_EVENT_REPOSITORY_NAME: ${{ github.event.repository.name }}
 
       - name: Build and Push
         uses: docker/build-push-action@v6
@@ -87,15 +87,15 @@ jobs:
           context: backend
           push: true
           tags: |
-            ghcr.io/${{ steps.ownerlc.outputs.owner_lc }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.makeTagAndRelease.outputs.tag_name }}
-            ghcr.io/${{ steps.ownerlc.outputs.owner_lc }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+            ghcr.io/${{ steps.vars.outputs.owner_lc }}/${{ steps.vars.outputs.repo_lc }}:${{ needs.makeTagAndRelease.outputs.tag_name }}
+            ghcr.io/${{ steps.vars.outputs.owner_lc }}/${{ steps.vars.outputs.repo_lc }}:latest
 
   deploy:
     runs-on: ubuntu-latest
     needs: [buildImageAndPush]
     env:
-      DOCKER_IMAGE_NAME: ${{ needs.buildImageAndPush.outputs.DOCKER_IMAGE_NAME }}
       OWNER_LC: ${{ needs.buildImageAndPush.outputs.OWNER_LC }}
+      REPO_LC: ${{ needs.buildImageAndPush.outputs.REPO_LC }}
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -118,7 +118,7 @@ jobs:
           working-directory: /
           comment: Deploy
           command: |
-            IMAGE="ghcr.io/${{ env.OWNER_LC }}/${{ env.DOCKER_IMAGE_NAME }}:latest"
+            IMAGE="ghcr.io/${{ env.OWNER_LC }}/${{ env.REPO_LC }}:latest"
             VOLUME="/gen:/gen"
             NETWORK="common"
             HEALTH_ENDPOINT="/actuator/health"
