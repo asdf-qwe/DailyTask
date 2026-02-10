@@ -48,11 +48,15 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+    # ✅ 변경 1) 이미지 이름을 repo 이름으로 자동 설정 (bearlink 제거)
     env:
-      DOCKER_IMAGE_NAME: bearlink
+      DOCKER_IMAGE_NAME: ${{ github.event.repository.name }}
+
     outputs:
       DOCKER_IMAGE_NAME: ${{ env.DOCKER_IMAGE_NAME }}
-      OWNER_LC: ${{ env.OWNER_LC }}
+      OWNER_LC: ${{ steps.ownerlc.outputs.owner_lc }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -72,7 +76,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set lower case owner name
-        run: echo "OWNER_LC=${OWNER,,}" >> $GITHUB_ENV
+        id: ownerlc
+        run: echo "owner_lc=${OWNER,,}" >> $GITHUB_OUTPUT
         env:
           OWNER: "${{ github.repository_owner }}"
 
@@ -82,8 +87,8 @@ jobs:
           context: backend
           push: true
           tags: |
-            ghcr.io/${{ env.OWNER_LC }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.makeTagAndRelease.outputs.tag_name }}
-            ghcr.io/${{ env.OWNER_LC }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+            ghcr.io/${{ steps.ownerlc.outputs.owner_lc }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.makeTagAndRelease.outputs.tag_name }}
+            ghcr.io/${{ steps.ownerlc.outputs.owner_lc }}/${{ env.DOCKER_IMAGE_NAME }}:latest
 
   deploy:
     runs-on: ubuntu-latest
