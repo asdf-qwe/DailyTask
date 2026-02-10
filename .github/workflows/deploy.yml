@@ -71,7 +71,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      
       - name: Set lower case vars
         id: vars
         shell: bash
@@ -105,7 +104,17 @@ jobs:
 
       - name: Get EC2 Instance ID
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=dev4-ec2-1" "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text)
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=dev4-ec2-1" "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" --output text)
+
+          echo "FOUND INSTANCE_ID=[$INSTANCE_ID]"
+
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "ERROR: No running instance found with tag Name=dev4-ec2-1"
+            exit 1
+          fi
+
           echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
 
       - name: Deploy via SSM
@@ -118,11 +127,16 @@ jobs:
           working-directory: /
           comment: Deploy
           command: |
+            set -e
+
             IMAGE="ghcr.io/${{ env.OWNER_LC }}/${{ env.REPO_LC }}:latest"
             VOLUME="/gen:/gen"
             NETWORK="common"
             HEALTH_ENDPOINT="/actuator/health"
             TIMEOUT=60
+
+         
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
             if docker ps --format '{{.Names}}' | grep -q "app1_1"; then
               CURRENT="app1_1"
