@@ -40,7 +40,7 @@ custom:
     frontUrl: "http://${custom.dev.cookieDomain}:3000"
     backUrl: "http://${custom.dev.cookieDomain}:${server.port}"
   prod:
-    cookieDomain: bearlink.kr
+    cookieDomain: pofol.site
     frontUrl: "https://www.${custom.prod.cookieDomain}"
     backUrl: "https://api.blog.${custom.prod.cookieDomain}"
   site:
