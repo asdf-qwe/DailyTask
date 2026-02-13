@@ -4,6 +4,7 @@ import com.project4.DailyTask.domain.team.dto.TeamListRes;
 import com.project4.DailyTask.domain.team.entity.Team;
 import com.project4.DailyTask.domain.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

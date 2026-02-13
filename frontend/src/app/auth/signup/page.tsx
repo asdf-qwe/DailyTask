@@ -64,7 +64,7 @@ export default function SignupPage() {
 
     try {
       const response = await authService.checkLoginId(formData.loginId);
-      console.log('아이디 중복 확인 응답:', response);
+      console.log("아이디 중복 확인 응답:", response);
       if (response.success) {
         setValidation((prev) => ({
           ...prev,
@@ -76,9 +76,10 @@ export default function SignupPage() {
         }));
       }
     } catch (err: any) {
-      console.error('아이디 중복 확인 에러:', err);
-      console.error('에러 응답:', err.response);
-      const errorMessage = err.response?.data?.message || "이미 사용 중인 아이디입니다";
+      console.error("아이디 중복 확인 에러:", err);
+      console.error("에러 응답:", err.response);
+      const errorMessage =
+        err.response?.data?.message || "이미 사용 중인 아이디입니다";
       setValidation((prev) => ({
         ...prev,
         loginId: {
@@ -119,7 +120,7 @@ export default function SignupPage() {
 
     try {
       const response = await authService.checkEmail(formData.email);
-      console.log('이메일 중복 확인 응답:', response);
+      console.log("이메일 중복 확인 응답:", response);
       if (response.success) {
         setValidation((prev) => ({
           ...prev,
@@ -131,9 +132,10 @@ export default function SignupPage() {
         }));
       }
     } catch (err: any) {
-      console.error('이메일 중복 확인 에러:', err);
-      console.error('에러 응답:', err.response);
-      const errorMessage = err.response?.data?.message || "이미 사용 중인 이메일입니다";
+      console.error("이메일 중복 확인 에러:", err);
+      console.error("에러 응답:", err.response);
+      const errorMessage =
+        err.response?.data?.message || "이미 사용 중인 이메일입니다";
       setValidation((prev) => ({
         ...prev,
         email: {

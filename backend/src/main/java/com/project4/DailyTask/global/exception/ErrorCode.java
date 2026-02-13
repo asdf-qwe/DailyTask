@@ -21,6 +21,7 @@ public enum ErrorCode {
     NOTIFICATION_ALREADY_READ(HttpStatus.BAD_REQUEST, "이미 읽었습니다."),
 
     // 401 UNAUTHORIZED (인증 실패)
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND,"리프레쉬 토큰이 없습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     INVALID_LOGIN_ID(HttpStatus.UNAUTHORIZED, "아이디가 올바르지 않습니다."),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다."),

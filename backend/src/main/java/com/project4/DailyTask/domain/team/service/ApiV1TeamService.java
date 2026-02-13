@@ -56,22 +56,17 @@ public class ApiV1TeamService {
     @Transactional
     public InviteCodeResponse createInviteCode(Long teamId, SecurityUser user, CreateInviteCodeRequest dto){
         Team team = findTeamOrThrow(teamId);
-
         validateOwner(teamId, user);
 
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(dto.expiresInHours());
 
-        teamInviteCodeRepository.deleteByTeamId(teamId);
+        TeamInviteCode invite = teamInviteCodeRepository.findByTeamId(teamId)
+                .orElseGet(() -> TeamInviteCode.createCode(expiresAt, team));
 
+        invite.updateCode(expiresAt);
+        teamInviteCodeRepository.save(invite);
 
-        TeamInviteCode teamInviteCode = TeamInviteCode.createCode(expiresAt,team);
-
-        teamInviteCodeRepository.save(teamInviteCode);
-
-        return new InviteCodeResponse(
-                teamInviteCode.getCode(),
-                teamInviteCode.getExpiresAt()
-        );
+        return new InviteCodeResponse(invite.getCode(), invite.getExpiresAt());
     }
 
     private void validateOwner(Long teamId, SecurityUser user){

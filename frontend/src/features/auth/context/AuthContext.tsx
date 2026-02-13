@@ -8,7 +8,7 @@ interface AuthContextType {
   user: UserResponseDto | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: () => void;
+  login: () => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -23,9 +23,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authService.getMyProfile();
       if (response.success) {
+        console.log(
+          "👤 사용자 인증 상태 유지:",
+          response.data.nickname || response.data.email,
+        );
         setUser(response.data);
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error(
+        "❌ 사용자 인증 실패:",
+        error.response?.status,
+        error.message,
+      );
+      if (error.response?.status === 401) {
+        console.warn("🔓 인증 토큰 만료 - 로그아웃 처리");
+      }
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -36,8 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, []);
 
-  const login = () => {
-    fetchUser();
+  const login = async () => {
+    await fetchUser();
   };
 
   const logout = async () => {

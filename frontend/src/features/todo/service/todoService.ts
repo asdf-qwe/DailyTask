@@ -1,4 +1,4 @@
-import axios from "axios";
+import { authApi } from "@/src/features/auth/service/authService";
 import {
   CreateTodoReq,
   CreateTodoRes,
@@ -9,22 +9,12 @@ import {
   UpdateTodoRes,
 } from "../types/todo";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
-const todoApi = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
 export const todoService = {
   /**
    * 개인 Todo 생성
    */
   createTodo: async (req: CreateTodoReq): Promise<CreateTodoRes> => {
-    const response = await todoApi.post("/api/v1/todos/my", req);
+    const response = await authApi.post("/api/v1/todos/my", req);
     return response.data.data;
   },
 
@@ -33,9 +23,9 @@ export const todoService = {
    */
   createTeamTodo: async (
     teamId: number,
-    req: CreateTodoReq
+    req: CreateTodoReq,
   ): Promise<CreateTeamTodoRes> => {
-    const response = await todoApi.post(`/api/v1/teams/${teamId}/todos`, req);
+    const response = await authApi.post(`/api/v1/teams/${teamId}/todos`, req);
     return response.data.data;
   },
 
@@ -45,7 +35,7 @@ export const todoService = {
   getTodoList: async (
     page: number = 0,
     size: number = 10,
-    cond?: TodoSearchCond
+    cond?: TodoSearchCond,
   ): Promise<TodoListRes> => {
     const params = {
       page,
@@ -53,7 +43,7 @@ export const todoService = {
       sort: "createdAt,desc",
       ...cond,
     };
-    const response = await todoApi.get("/api/v1/todos/my", { params });
+    const response = await authApi.get("/api/v1/todos/my", { params });
     return response.data.data;
   },
 
@@ -64,7 +54,7 @@ export const todoService = {
     teamId: number,
     page: number = 0,
     size: number = 10,
-    cond?: TodoSearchCond
+    cond?: TodoSearchCond,
   ): Promise<TodoListRes> => {
     const params = {
       page,
@@ -72,7 +62,7 @@ export const todoService = {
       sort: "createdAt,desc",
       ...cond,
     };
-    const response = await todoApi.get(`/api/v1/teams/${teamId}/todos`, {
+    const response = await authApi.get(`/api/v1/teams/${teamId}/todos`, {
       params,
     });
     return response.data.data;
@@ -83,9 +73,9 @@ export const todoService = {
    */
   updateTodo: async (
     todoId: number,
-    req: UpdateTodoReq
+    req: UpdateTodoReq,
   ): Promise<UpdateTodoRes> => {
-    const response = await todoApi.patch(`/api/v1/todos/${todoId}`, req);
+    const response = await authApi.patch(`/api/v1/todos/${todoId}`, req);
     return response.data.data;
   },
 
@@ -93,7 +83,7 @@ export const todoService = {
    * Todo 삭제
    */
   deleteTodo: async (todoId: number): Promise<boolean> => {
-    const response = await todoApi.delete(`/api/v1/todos/${todoId}`);
+    const response = await authApi.delete(`/api/v1/todos/${todoId}`);
     return response.data.data;
   },
 };

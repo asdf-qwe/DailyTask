@@ -29,7 +29,7 @@ public class ApiV1UserController {
     }
 
     @GetMapping("/check-email")
-    public ResponseEntity<ApiResponse<String>> checkEmail(@RequestParam @Email String email) {
+    public ResponseEntity<ApiResponse<String>> checkEmail(@RequestParam String email) {
         userService.checkEmailAvailable(email);
         return ResponseEntity.ok(ApiResponse.ok("사용 가능한 이메일입니다."));
     }

@@ -1,4 +1,4 @@
-import axios, { AxiosResponse, AxiosError } from "axios";
+import { authApi } from "@/src/features/auth/service/authService";
 import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { MessageRes, SendMessageDto } from "../types/message";
@@ -8,15 +8,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const WS_BASE_URL = API_BASE_URL.replace(/^http/, "ws");
 const API_PREFIX = "/api/channel";
 
-// Axios 인스턴스 생성
-const messageApi = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
 // API 응답 타입
 interface ApiResponse<T> {
   success: boolean;
@@ -24,17 +15,6 @@ interface ApiResponse<T> {
   message?: string;
   errorCode?: string;
 }
-
-// 응답 인터셉터 (에러 처리)
-messageApi.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      console.error("Authentication failed");
-    }
-    return Promise.reject(error);
-  }
-);
 
 /**
  * WebSocket STOMP 클라이언트 관리
@@ -91,7 +71,7 @@ class WebSocketClient {
    */
   subscribe(
     channelId: number,
-    onMessage: (message: MessageRes) => void
+    onMessage: (message: MessageRes) => void,
   ): () => void {
     const destination = `/topic/channel/${channelId}`;
 
@@ -116,7 +96,7 @@ class WebSocketClient {
         } catch (error) {
           console.error("Failed to parse message:", error);
         }
-      }
+      },
     );
 
     this.subscriptions.set(destination, subscription);
@@ -162,10 +142,10 @@ export const messageService = {
    * 채팅 히스토리 조회
    */
   getChatHistory: async (
-    channelId: number
+    channelId: number,
   ): Promise<ApiResponse<MessageRes[]>> => {
-    const response = await messageApi.get<ApiResponse<MessageRes[]>>(
-      `${API_PREFIX}/${channelId}/messages`
+    const response = await authApi.get<ApiResponse<MessageRes[]>>(
+      `${API_PREFIX}/${channelId}/messages`,
     );
     return response.data;
   },
@@ -189,7 +169,7 @@ export const messageService = {
    */
   subscribeToChannel: (
     channelId: number,
-    onMessage: (message: MessageRes) => void
+    onMessage: (message: MessageRes) => void,
   ): (() => void) => {
     return wsClient.subscribe(channelId, onMessage);
   },

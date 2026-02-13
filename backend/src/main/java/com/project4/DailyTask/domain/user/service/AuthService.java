@@ -2,6 +2,7 @@ package com.project4.DailyTask.domain.user.service;
 
 import com.project4.DailyTask.domain.user.dto.LoginRequestDto;
 import com.project4.DailyTask.domain.user.dto.TokenResponseDto;
+import com.project4.DailyTask.domain.user.dto.UserResponseDto;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
 import com.project4.DailyTask.global.exception.ApiException;
@@ -76,5 +77,14 @@ public class AuthService {
         user.updateRefreshToken(newRefresh);
 
         return new TokenResponseDto(newAccess, newRefresh);
+    }
+
+    public UserResponseDto getMe(SecurityUser user){
+        if (user == null) {
+            throw new ApiException(ErrorCode.AUTHENTICATION_REQUIRED);
+        }
+
+        return userRepository.findDtoById(user.getId())
+                .orElseThrow(()->new ApiException(ErrorCode.USER_NOT_FOUND));
     }
 }

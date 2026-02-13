@@ -35,22 +35,13 @@ logging:
     org.springframework.transaction.interceptor: WARN
 
 custom:
-  dev:
-    cookieDomain: localhost
-    frontUrl: "http://${custom.dev.cookieDomain}:3000"
-    backUrl: "http://${custom.dev.cookieDomain}:${server.port}"
-  prod:
-    cookieDomain: pofol.site
-    frontUrl: "https://www.${custom.prod.cookieDomain}"
-    backUrl: "https://api.blog.${custom.prod.cookieDomain}"
   site:
-    name: "BEARLINK"
     cookie:
       secure: false
       sameSite: Lax
-    cookieDomain: "${custom.dev.cookieDomain}"
-    frontUrl: "${custom.dev.frontUrl}"
-    backUrl: "${custom.dev.backUrl}"
+    cookieDomain: localhost
+    frontUrl: "http://localhost:3000"
+    backUrl: "http://localhost:${server.port}"
 
   aws:
     region: ap-northeast-2

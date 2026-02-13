@@ -44,5 +44,8 @@ public class TeamInviteCode extends BaseEntity {
         return expiresAt.isBefore(now);
     }
 
-
+    public void updateCode(LocalDateTime newExpiresAt){
+        this.code = UUID.randomUUID().toString().replace("-","");
+        this.expiresAt = newExpiresAt;
+    }
 }

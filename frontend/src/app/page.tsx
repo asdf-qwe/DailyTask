@@ -205,12 +205,11 @@ export default function Home() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              안녕하세요, {user?.nickname || user?.loginId}님 👋
+              안녕하세요, {user?.nickname}님 
             </h1>
             <p className="text-gray-600">오늘도 좋은 하루 보내세요!</p>
           </div>
           <div className="text-right">
-            <div className="text-sm text-gray-500">{user?.email}</div>
             <div className="text-2xl font-semibold text-gray-900">
               {new Date().toLocaleDateString("ko-KR", {
                 month: "long",
