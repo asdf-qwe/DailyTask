@@ -7,6 +7,7 @@ import TodoCard from "@/src/component/todo/TodoCard";
 import TodoStats from "@/src/component/todo/TodoStats";
 import TodoCreateModal from "@/src/component/todo/TodoCreateModal";
 import TodoEditModal from "@/src/component/todo/TodoEditModal";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { todoService } from "@/src/features/todo/service/todoService";
 import { teamService } from "@/src/features/team/service/teamService";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/src/features/todo/types/todo";
 
 export default function TodoPage() {
+  const { isLoading: authLoading } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<TodoSummary | null>(null);
@@ -275,6 +277,17 @@ export default function TodoPage() {
       isOverdue: false,
     };
   }, []);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

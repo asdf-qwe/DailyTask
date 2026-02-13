@@ -24,7 +24,7 @@ export default function LoginPage() {
     try {
       const response = await authService.login(formData);
       if (response.success) {
-        login(); // AuthContext 업데이트
+        await login(); // AuthContext 업데이트
         router.push("/"); // 메인 페이지로 이동
       } else {
         setError(response.message || "로그인에 실패했습니다.");

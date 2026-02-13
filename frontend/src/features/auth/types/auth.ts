@@ -33,11 +33,8 @@ export enum UserRole {
 // 사용자 응답 DTO
 export interface UserResponseDto {
   id: number;
-  loginId: string;
   email: string;
   nickname: string;
-  profileUrl?: string;
-  status: Status;
   role: UserRole;
 }
 

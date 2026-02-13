@@ -43,6 +43,9 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public void checkEmailAvailable(String email) {
+        if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+            throw new ApiException(ErrorCode.INVALID_USER_EMAIL);
+        }
         if (userRepository.existsByEmail(email)) {
             throw new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }

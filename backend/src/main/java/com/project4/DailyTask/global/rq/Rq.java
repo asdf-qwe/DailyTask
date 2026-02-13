@@ -38,12 +38,13 @@ public class Rq {
     @Value("${custom.site.cookie.sameSite}")
     private String cookieSameSite;
 
+    @Value("${custom.site.cookieDomain}")
+    private String cookieDomain;
+
     public SecurityUser getPrincipal() {
-        return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+        return (SecurityUser) Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
                 .map(Authentication::getPrincipal)
-                .filter(p -> p instanceof SecurityUser)
-                .map(p -> (SecurityUser) p)
-                .orElse(null);
+                .filter(p -> p instanceof SecurityUser).orElse(null);
     }
 
     public User getActor() {
@@ -63,38 +64,47 @@ public class Rq {
     }
 
     public void setCookie(String name, String value) {
-        ResponseCookie cookie = ResponseCookie.from(name, value)
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
                 .path("/")
                 .secure(cookieSecure)
                 .sameSite(cookieSameSite)
-                .httpOnly(true)
-                .build();
+                .httpOnly(true);
 
-        res.addHeader("Set-Cookie", cookie.toString());
+        if (cookieDomain != null && !cookieDomain.isBlank() && !"localhost".equalsIgnoreCase(cookieDomain)) {
+            builder.domain(cookieDomain);
+        }
+
+        res.addHeader("Set-Cookie", builder.build().toString());
     }
 
     public void setCookie(String name, String value, int maxAgeSeconds) {
-        ResponseCookie cookie = ResponseCookie.from(name, value)
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
                 .path("/")
                 .maxAge(maxAgeSeconds)
                 .secure(cookieSecure)
                 .sameSite(cookieSameSite)
-                .httpOnly(true)
-                .build();
+                .httpOnly(true);
 
-        res.addHeader("Set-Cookie", cookie.toString());
+        if (cookieDomain != null && !cookieDomain.isBlank() && !"localhost".equalsIgnoreCase(cookieDomain)) {
+            builder.domain(cookieDomain);
+        }
+
+        res.addHeader("Set-Cookie", builder.build().toString());
     }
 
     public void deleteCookie(String name) {
-        ResponseCookie cookie = ResponseCookie.from(name, "")
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, "")
                 .path("/")
                 .maxAge(0)
                 .secure(cookieSecure)
                 .sameSite(cookieSameSite)
-                .httpOnly(true)
-                .build();
+                .httpOnly(true);
 
-        res.addHeader("Set-Cookie", cookie.toString());
+        if (cookieDomain != null && !cookieDomain.isBlank() && !"localhost".equalsIgnoreCase(cookieDomain)) {
+            builder.domain(cookieDomain);
+        }
+
+        res.addHeader("Set-Cookie", builder.build().toString());
     }
 
     public void setHeader(String name, String value) {

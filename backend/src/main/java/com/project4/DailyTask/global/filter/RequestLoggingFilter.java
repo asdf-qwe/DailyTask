@@ -9,6 +9,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
+@Profile({"test"})
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class RequestLoggingFilter extends OncePerRequestFilter {
 

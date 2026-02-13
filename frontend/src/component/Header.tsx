@@ -43,7 +43,12 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
         setNotifications(response.data);
         setUnreadCount(response.data.filter((n) => !n.read).length);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // 403 에러는 알림 기능이 비활성화되었거나 권한이 없는 경우이므로 조용히 처리
+      if (error.response?.status === 403) {
+        return;
+      }
+      // 다른 에러는 로그만 출력
       console.error("Failed to fetch notifications:", error);
     }
   }, [isAuthenticated]);
@@ -56,7 +61,11 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
         if (response.success) {
           fetchNotifications();
         }
-      } catch (error) {
+      } catch (error: any) {
+        // 403 에러는 조용히 처리
+        if (error.response?.status === 403) {
+          return;
+        }
         console.error("Failed to mark notification as read:", error);
       }
     },
@@ -241,12 +250,12 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
                 <div className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer">
                   <div className="w-8 h-8 bg-gradient-to-br from-gray-700 to-gray-900 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
-                      {user.nickname?.charAt(0) || user.loginId.charAt(0)}
+                      {user.nickname?.charAt(0)?.toUpperCase() || "U"}
                     </span>
                   </div>
                   <div className="hidden md:block">
                     <div className="text-sm font-medium text-gray-900">
-                      {user.nickname || user.loginId}
+                      {user.nickname || "사용자"}
                     </div>
                     <div className="text-xs text-gray-500">{user.email}</div>
                   </div>

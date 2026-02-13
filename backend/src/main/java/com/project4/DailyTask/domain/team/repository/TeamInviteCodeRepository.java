@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface TeamInviteCodeRepository extends JpaRepository<TeamInviteCode,Long> {
     Optional<TeamInviteCode> findByCode(String code);
     void deleteByTeamId(Long teamId);
+    Optional<TeamInviteCode> findByTeamId(Long teamId);
 }

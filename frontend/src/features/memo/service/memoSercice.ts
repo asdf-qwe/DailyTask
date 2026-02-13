@@ -1,4 +1,4 @@
-import axios, { AxiosResponse, AxiosError } from "axios";
+import { authApi } from "@/src/features/auth/service/authService";
 import {
   CreateMemoReq,
   CreateMemoRes,
@@ -10,17 +10,7 @@ import {
 } from "../types/memo";
 
 // API 기본 URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const API_PREFIX = "/api/v1";
-
-// Axios 인스턴스 생성
-const memoApi = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true, // 쿠키 전송을 위해 필요
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
 
 // API 응답 타입
 interface ApiResponse<T> {
@@ -29,17 +19,6 @@ interface ApiResponse<T> {
   message?: string;
   errorCode?: string;
 }
-
-// 응답 인터셉터 (에러 처리)
-memoApi.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      console.error("Authentication failed");
-    }
-    return Promise.reject(error);
-  }
-);
 
 /**
  * 메모 서비스
@@ -50,11 +29,11 @@ export const memoService = {
    */
   createMemo: async (
     teamId: number,
-    request: CreateMemoReq
+    request: CreateMemoReq,
   ): Promise<ApiResponse<CreateMemoRes>> => {
-    const response = await memoApi.post<ApiResponse<CreateMemoRes>>(
+    const response = await authApi.post<ApiResponse<CreateMemoRes>>(
       `${API_PREFIX}/teams/${teamId}/memos`,
-      request
+      request,
     );
     return response.data;
   },
@@ -66,7 +45,7 @@ export const memoService = {
     teamId: number,
     page: number = 0,
     size: number = 10,
-    searchCond?: MemoSearchCond
+    searchCond?: MemoSearchCond,
   ): Promise<ApiResponse<MemoListRes>> => {
     const params = {
       page,
@@ -75,9 +54,9 @@ export const memoService = {
       ...searchCond,
     };
 
-    const response = await memoApi.get<ApiResponse<MemoListRes>>(
+    const response = await authApi.get<ApiResponse<MemoListRes>>(
       `${API_PREFIX}/teams/${teamId}/memos`,
-      { params }
+      { params },
     );
     return response.data;
   },
@@ -86,8 +65,8 @@ export const memoService = {
    * 메모 상세 조회
    */
   getMemo: async (memoId: number): Promise<ApiResponse<MemoRes>> => {
-    const response = await memoApi.get<ApiResponse<MemoRes>>(
-      `${API_PREFIX}/memos/${memoId}`
+    const response = await authApi.get<ApiResponse<MemoRes>>(
+      `${API_PREFIX}/memos/${memoId}`,
     );
     return response.data;
   },
@@ -97,11 +76,11 @@ export const memoService = {
    */
   updateMemo: async (
     memoId: number,
-    request: UpdateMemoReq
+    request: UpdateMemoReq,
   ): Promise<ApiResponse<UpdateMemoRes>> => {
-    const response = await memoApi.patch<ApiResponse<UpdateMemoRes>>(
+    const response = await authApi.patch<ApiResponse<UpdateMemoRes>>(
       `${API_PREFIX}/memos/${memoId}`,
-      request
+      request,
     );
     return response.data;
   },
@@ -110,12 +89,9 @@ export const memoService = {
    * 메모 삭제
    */
   deleteMemo: async (memoId: number): Promise<ApiResponse<boolean>> => {
-    const response = await memoApi.delete<ApiResponse<boolean>>(
-      `${API_PREFIX}/memos/${memoId}`
+    const response = await authApi.delete<ApiResponse<boolean>>(
+      `${API_PREFIX}/memos/${memoId}`,
     );
     return response.data;
   },
 };
-
-// Axios 인스턴스도 export
-export { memoApi };

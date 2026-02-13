@@ -40,8 +40,11 @@ logging:
     org.springframework.data.redis: DEBUG
 custom:
   site:
-    cookieDomain: "${custom.prod.cookieDomain}"
-    frontUrl: "${custom.prod.frontUrl}"
-    backUrl: "${custom.prod.backUrl}"
+    cookie:
+      secure: true
+      sameSite: None
+    cookieDomain: pofol.site
+    frontUrl: "https://www.pofol.site"
+    backUrl: "https://api.pofol.site"
   genFile:
     dirPath: /gen
