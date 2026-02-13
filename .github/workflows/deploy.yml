@@ -108,10 +108,7 @@ jobs:
             --filters "Name=tag:Name,Values=dev4-ec2-1" "Name=instance-state-name,Values=running" \
             --query "Reservations[].Instances[].InstanceId" --output text)
 
-          echo "FOUND INSTANCE_ID=[$INSTANCE_ID]"
-
           if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
-            echo "ERROR: No running instance found with tag Name=dev4-ec2-1"
             exit 1
           fi
 
@@ -135,10 +132,10 @@ jobs:
             HEALTH_ENDPOINT="/actuator/health"
             TIMEOUT=60
 
-         
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
-            if docker ps --format '{{.Names}}' | grep -q "app1_1"; then
+            
+            if docker ps --format '{{.Names}} {{.Ports}}' | grep -q '^app1_1 .*:8080->8080/tcp'; then
               CURRENT="app1_1"
               NEXT="app1_2"
               NEXT_PORT=8081
@@ -150,8 +147,8 @@ jobs:
 
             docker pull "$IMAGE"
 
-            docker stop "$NEXT" 2>/dev/null || true
-            docker rm "$NEXT" 2>/dev/null || true
+           
+            docker rm -f "$NEXT" 2>/dev/null || true
 
             docker run -d \
               -v "$VOLUME" \
@@ -162,9 +159,10 @@ jobs:
               -e SPRING_DATA_REDIS_PORT=6379 \
               "$IMAGE"
 
+            
             START_TIME=$(date +%s)
             while true; do
-              CONTENT=$(curl -s "http://localhost:$NEXT_PORT$HEALTH_ENDPOINT")
+              CONTENT=$(curl -s "http://localhost:$NEXT_PORT$HEALTH_ENDPOINT" || true)
 
               if [[ "$CONTENT" == *'"status":"UP"'* ]]; then
                 break
@@ -172,9 +170,8 @@ jobs:
 
               ELAPSED_TIME=$(( $(date +%s) - START_TIME ))
               if [[ $ELAPSED_TIME -ge $TIMEOUT ]]; then
-                docker logs "$NEXT"
-                docker stop "$NEXT" 2>/dev/null || true
-                docker rm "$NEXT" 2>/dev/null || true
+                docker logs "$NEXT" || true
+                docker rm -f "$NEXT" 2>/dev/null || true
                 exit 1
               fi
 
@@ -183,7 +180,8 @@ jobs:
 
             sleep 10
 
-            docker stop "$CURRENT" 2>/dev/null || true
-            docker rm "$CURRENT" 2>/dev/null || true
 
-            docker rmi $(docker images -f "dangling=true" -q) 2>/dev/null || true
+            docker rm -f "$CURRENT" 2>/dev/null || true
+
+           
+            docker images -f "dangling=true" -q | xargs -r docker rmi 2>/dev/null || true
