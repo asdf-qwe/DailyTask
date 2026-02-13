@@ -134,7 +134,8 @@ jobs:
 
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
-            if docker ps --format '{{.Names}}' | grep -q "^app1_1$"; then
+            # ✅ "현재 8080(실서비스 포트)"에 붙어있는 컨테이너를 CURRENT로 판단
+            if docker ps --format '{{.Names}} {{.Ports}}' | grep -q '^app1_1 .*:8080->8080/tcp'; then
               CURRENT="app1_1"
               NEXT="app1_2"
               NEXT_PORT=8081
@@ -146,8 +147,8 @@ jobs:
 
             docker pull "$IMAGE"
 
-            docker stop "$NEXT" 2>/dev/null || true
-            docker rm "$NEXT" 2>/dev/null || true
+            # ✅ NEXT는 혹시 남아있으면 강제 삭제(실행중이어도 제거)
+            docker rm -f "$NEXT" 2>/dev/null || true
 
             docker run -d \
               -v "$VOLUME" \
@@ -158,6 +159,7 @@ jobs:
               -e SPRING_DATA_REDIS_PORT=6379 \
               "$IMAGE"
 
+            # ✅ set -e 상태에서 curl 실패로 스크립트가 죽지 않게 예외 처리
             START_TIME=$(date +%s)
             while true; do
               CONTENT=$(curl -s "http://localhost:$NEXT_PORT$HEALTH_ENDPOINT" || true)
@@ -169,8 +171,7 @@ jobs:
               ELAPSED_TIME=$(( $(date +%s) - START_TIME ))
               if [[ $ELAPSED_TIME -ge $TIMEOUT ]]; then
                 docker logs "$NEXT" || true
-                docker stop "$NEXT" 2>/dev/null || true
-                docker rm "$NEXT" 2>/dev/null || true
+                docker rm -f "$NEXT" 2>/dev/null || true
                 exit 1
               fi
 
@@ -179,7 +180,8 @@ jobs:
 
             sleep 10
 
-            docker stop "$CURRENT" 2>/dev/null || true
-            docker rm "$CURRENT" 2>/dev/null || true
+            # ✅ CURRENT도 강제 삭제해서 "둘 다 뜨는 상태"를 원천 차단
+            docker rm -f "$CURRENT" 2>/dev/null || true
 
-            docker rmi $(docker images -f "dangling=true" -q) 2>/dev/null || true
+            # dangling image 정리 (없으면 통과)
+            docker images -f "dangling=true" -q | xargs -r docker rmi 2>/dev/null || true
