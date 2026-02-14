@@ -132,9 +132,17 @@ jobs:
             HEALTH_ENDPOINT="/actuator/health"
             TIMEOUT=60
 
+            
+            ENV_FILE="/opt/myapp/.env"
+
+           
+            if [ ! -f "$ENV_FILE" ]; then
+              echo "ERROR: env file not found: $ENV_FILE" >&2
+              exit 1
+            fi
+
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
-            
             if docker ps --format '{{.Names}} {{.Ports}}' | grep -q '^app1_1 .*:8080->8080/tcp'; then
               CURRENT="app1_1"
               NEXT="app1_2"
@@ -147,19 +155,17 @@ jobs:
 
             docker pull "$IMAGE"
 
-           
             docker rm -f "$NEXT" 2>/dev/null || true
 
+          
             docker run -d \
               -v "$VOLUME" \
               --network "$NETWORK" \
               --name "$NEXT" \
               -p "$NEXT_PORT":8080 \
-              -e SPRING_DATA_REDIS_HOST=redis_1 \
-              -e SPRING_DATA_REDIS_PORT=6379 \
+              --env-file "$ENV_FILE" \
               "$IMAGE"
 
-            
             START_TIME=$(date +%s)
             while true; do
               CONTENT=$(curl -s "http://localhost:$NEXT_PORT$HEALTH_ENDPOINT" || true)
@@ -180,8 +186,6 @@ jobs:
 
             sleep 10
 
-
             docker rm -f "$CURRENT" 2>/dev/null || true
 
-           
             docker images -f "dangling=true" -q | xargs -r docker rmi 2>/dev/null || true
