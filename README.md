@@ -5,7 +5,7 @@
 
 ## 프로젝트 소개
 
-DailyTask는 팀 단위 협업 환경을 위한 백엔드 중심 API 서버입니다.
+DailyTask는 팀 단위 협업 환경을 위한 팀 기반 협업 메모, 커뮤니케이션, Todo 관리 서비스 입니다.
 
 단순 CRUD 구현이 아니라,
 
@@ -190,7 +190,17 @@ DailyTask는 팀 단위 협업 환경을 위한 백엔드 중심 API 서버입�
 
 ---
 
-# 실행 방법
+# Live Demo
 
-## 1️⃣ 로컬 실행
+- Production URL: https://pofol.site
+- API Base URL: https://api.pofol.site
+
+## Deployment
+
+- Docker 기반 배포
+- GitHub Actions CI/CD
+- AWS EC2
+- HAProxy Reverse Proxy
+- HTTPS 적용
+
 
