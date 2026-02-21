@@ -47,11 +47,10 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             return message;
         }
 
-        SecurityUser securityUser = extractSecurityUser(accessor);
-
         if (StompCommand.SUBSCRIBE.equals(cmd) || StompCommand.SEND.equals(cmd)) {
+            Long userId = extractUserId(accessor);
             Long teamId = parseTeamId(accessor.getDestination());
-            teamMemberChecker.requireJoined(teamId, securityUser.getId());
+            teamMemberChecker.requireJoined(teamId, userId);
         }
 
         return message;
@@ -93,17 +92,8 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         List<GrantedAuthority> authorities =
                 List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
 
-        SecurityUser securityUser = new SecurityUser(
-                userId,
-                null,
-                null,
-                null,
-                role,
-                authorities
-        );
-
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                securityUser,
+                userId,
                 null,
                 authorities
         );
@@ -111,7 +101,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         accessor.setUser(authentication);
     }
 
-    private SecurityUser extractSecurityUser(StompHeaderAccessor accessor) {
+    private Long extractUserId(StompHeaderAccessor accessor) {
         if (accessor.getUser() == null) {
             throw new ApiException(ErrorCode.INVALID_TOKEN);
         }
@@ -121,11 +111,20 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         }
 
         Object principal = authentication.getPrincipal();
-        if (!(principal instanceof SecurityUser)) {
-            throw new ApiException(ErrorCode.INVALID_TOKEN);
+
+        if (principal instanceof Long userId) {
+            return userId;
         }
 
-        return (SecurityUser) principal;
+        if (principal instanceof String s) {
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException e) {
+                throw new ApiException(ErrorCode.INVALID_TOKEN);
+            }
+        }
+
+        throw new ApiException(ErrorCode.INVALID_TOKEN);
     }
 
     private Long parseTeamId(String destination) {
