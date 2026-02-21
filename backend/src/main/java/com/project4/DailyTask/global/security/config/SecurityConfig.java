@@ -52,9 +52,11 @@ public class SecurityConfig {
                         ).permitAll()
 
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
 
 
                         .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll()
 
                 )
 

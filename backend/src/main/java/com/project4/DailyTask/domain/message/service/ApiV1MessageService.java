@@ -41,14 +41,14 @@ public class ApiV1MessageService {
     private final TeamMemberChecker teamMemberChecker;
 
     @Transactional
-    public void sendMessage(Long channelId, SecurityUser user, SendMessageDto dto){
+    public void sendMessage(Long channelId, Long userId, SendMessageDto dto){
         Channel channel = findChannelOrThrow(channelId);
 
-        User sender = userRepository.findByIdAndStatus(user.getId(), Status.ACTIVE)
+        User sender = userRepository.findByIdAndStatus(userId, Status.ACTIVE)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         Team team = channel.getTeam();
-        teamMemberChecker.requireJoined(team.getId(), user.getId());
+        teamMemberChecker.requireJoined(team.getId(), userId);
         Message message = Message.createMessage(channel, sender, dto.content(), sender.getNickname(), sender.getId());
         messageRepository.save(message);
         createNotification(team, sender);
@@ -56,7 +56,7 @@ public class ApiV1MessageService {
         MessageRes res = new MessageRes(
                 message.getId(),
                 channelId,
-                new MessageAuthor(user.getId(), user.getNickname()),
+                new MessageAuthor(sender.getId(), sender.getNickname()),
                 message.getContent(),
                 message.getCreatedAt()
         );

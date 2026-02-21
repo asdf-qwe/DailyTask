@@ -23,7 +23,9 @@ public class SecurityUser implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        return (email != null && !email.isBlank())
+                ? email
+                : String.valueOf(id);
     }
 
     @Override
@@ -47,4 +49,3 @@ public class SecurityUser implements UserDetails {
     }
 
 }
-
