@@ -53,9 +53,9 @@ public class ApiV1ChannelService {
         validateDeleteAuthority(member);
 
         Channel channel = findChannelOrThrow(channelId, teamId);
-        deleteRelatedMessages(channelId);
         channelRepository.delete(channel);
     }
+
     private void validateDeleteAuthority(TeamMember member) {
         if (!member.isOwner()) {
             throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE);
@@ -67,8 +67,5 @@ public class ApiV1ChannelService {
                 .orElseThrow(() -> new ApiException(ErrorCode.CHANNEL_NOT_FOUND));
     }
 
-    private void deleteRelatedMessages(Long channelId) {
-        messageRepository.deleteAllByChannelId(channelId);
-    }
 }
 

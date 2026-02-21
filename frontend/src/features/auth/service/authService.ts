@@ -199,3 +199,33 @@ export const authService = {
 
 // Axios 인스턴스도 export (다른 곳에서 사용할 수 있도록)
 export { authApi };
+
+// ============ Access Token 저장소 (WebSocket 인증용) ============
+let _accessToken: string | null = null;
+
+export const tokenStore = {
+  getToken: (): string | null => _accessToken,
+  setToken: (token: string | null): void => {
+    _accessToken = token;
+  },
+  /**
+   * accessToken이 없거나 만료되었을 때 refresh API로 재발급하여 tokenStore 갱신
+   */
+  ensureAccessToken: async (): Promise<string> => {
+    if (_accessToken) return _accessToken;
+
+    // accessToken이 없으면 refresh 쿠키로 재발급 시도
+    try {
+      const response = await authApi.post<ApiResponse<TokenResponseDto>>(
+        `${AUTH_PREFIX}/refresh`,
+      );
+      if (response.data.success && response.data.data?.accessToken) {
+        _accessToken = response.data.data.accessToken;
+        return _accessToken;
+      }
+    } catch (error) {
+      console.error("Failed to refresh access token for WebSocket:", error);
+    }
+    throw new Error("No valid access token available");
+  },
+};

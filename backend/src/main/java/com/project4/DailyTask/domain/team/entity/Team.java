@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,9 @@ public class Team extends BaseEntity {
 
     @Column(name = "description", length = 300)
     private String description;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<TeamMember> teamMembers = new ArrayList<>();
@@ -51,6 +55,16 @@ public class Team extends BaseEntity {
     public void updateInfo(String name, String description) {
         this.name = name;
         this.description = description;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    public void delete() {
+        if (this.deletedAt == null) {
+            this.deletedAt = LocalDateTime.now();
+        }
     }
 
 }

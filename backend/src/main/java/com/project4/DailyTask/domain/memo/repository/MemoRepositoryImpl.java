@@ -24,12 +24,14 @@ public class MemoRepositoryImpl implements MemoRepositoryCustom{
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<MemoSummary> searchMemo(Long teamId, Long authorId, LocalDateTime startDate,
-                                            LocalDateTime endDate, Pageable pageable) {
+    public Page<MemoSummary> searchMemo(Long teamId, Long actorId, Long authorId,
+                                        LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         QMemo m = QMemo.memo;
 
         BooleanBuilder where = new BooleanBuilder()
-                .and(m.team.id.eq(teamId));
+                .and(m.team.id.eq(teamId))
+                .and(m.visibility.eq(Visibility.TEAM)
+                        .or(m.visibility.eq(Visibility.PRIVATE).and(m.user.id.eq(actorId))));
 
         if (authorId != null) {
             where.and(m.user.id.eq(authorId));
@@ -92,3 +94,4 @@ public class MemoRepositoryImpl implements MemoRepositoryCustom{
         return orders.toArray(new com.querydsl.core.types.OrderSpecifier[0]);
     }
 }
+

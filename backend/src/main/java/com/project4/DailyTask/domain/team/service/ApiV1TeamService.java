@@ -155,7 +155,7 @@ public class ApiV1TeamService {
     @Transactional
     public void deleteMember(Long teamId, SecurityUser user, Long targetUserId){
         validateMemberDeleteAuthority(teamId,user,targetUserId);
-        TeamMember member = teamMemberChecker.findMemberOrThrow(teamId, user.getId());
+        TeamMember member = teamMemberChecker.findMemberOrThrow(teamId, targetUserId);
         member.leftMember();
     }
 
@@ -165,12 +165,17 @@ public class ApiV1TeamService {
             throw new ApiException(ErrorCode.CANNOT_KICK_SELF);
         }
 
-        boolean isOwner = teamMemberRepository
-                .existsByTeamIdAndUserIdAndRoleAndTeamStatus(teamId, user.getId(), Role.OWNER, TeamStatus.JOINED);
+        teamMemberChecker.requireOwner(teamId, user.getId());
+    }
 
-        if (!isOwner) {
-            throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE);
-        }
+    @Transactional
+    public void deleteTeam(Long teamId, SecurityUser user){
+        teamMemberChecker.requireOwner(teamId, user.getId());
+
+        Team team = teamRepository.findActiveById(teamId)
+                .orElseThrow(()-> new ApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        team.delete();
     }
 
 }

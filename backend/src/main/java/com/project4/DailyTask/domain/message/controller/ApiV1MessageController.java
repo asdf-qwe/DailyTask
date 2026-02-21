@@ -13,25 +13,28 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
+@RequestMapping("/api/v1/messages")
 public class ApiV1MessageController {
     private final ApiV1MessageService messageService;
 
 
-    @MessageMapping("/channel/{channelId}")
-    public void handleRoomMessage(@DestinationVariable Long channelId,
+    @MessageMapping("/team/{teamId}/channel/{channelId}")
+    public void handleRoomMessage(@DestinationVariable Long teamId,
+                                  @DestinationVariable Long channelId,
                                   @AuthenticationPrincipal SecurityUser user,
                                   SendMessageDto messageDto) {
         messageService.sendMessage(channelId, user, messageDto);
     }
 
 
-    @GetMapping("/api/channel/{channelId}/messages")
+    @GetMapping("/channel/{channelId}")
     public ResponseEntity<ApiResponse<List<MessageRes>>> getChatHistory(@PathVariable Long channelId,
                                                                         @AuthenticationPrincipal SecurityUser user) {
         List<MessageRes> messageDto = messageService.getChatHistory(channelId, user);

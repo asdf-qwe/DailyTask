@@ -41,6 +41,8 @@ public enum ErrorCode {
     CHANNEL_MESSAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "팀원만 메세지를 보낼 수 있습니다."),
     CANNOT_KICK_SELF(HttpStatus.FORBIDDEN, "관리자는 팀 탈퇴를 할 수 없습니다."),
     WITHDRAW_USER(HttpStatus.FORBIDDEN, "탈퇴한 유저입니다."),
+    TEAM_MESSAGE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "팀 메시지 조회 권한이 없습니다."),
+    MEMO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "메모 조회 권한이 없습니다."),
 
     // 404 NOT_FOUND (존재하지 않음)
     MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모가 없습니다."),

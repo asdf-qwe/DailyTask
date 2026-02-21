@@ -112,6 +112,16 @@ export const teamService = {
   },
 
   /**
+   * 팀 삭제 (OWNER 전용, soft delete)
+   */
+  deleteTeam: async (teamId: number): Promise<ApiResponse<boolean>> => {
+    const response = await authApi.patch<ApiResponse<boolean>>(
+      `${API_PREFIX}/${teamId}`,
+    );
+    return response.data;
+  },
+
+  /**
    * 팀 멤버 삭제 (강퇴)
    */
   deleteMember: async (

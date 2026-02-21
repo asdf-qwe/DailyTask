@@ -8,6 +8,11 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 
 public interface MemoRepositoryCustom {
-    Page<MemoSummary> searchMemo(Long teamId, Long authorId, LocalDateTime startDate,
-                                 LocalDateTime endDate, Pageable pageable);
+    Page<MemoSummary> searchMemo(Long teamId,
+                                 Long actorId,
+                                 Long authorId,
+                                 LocalDateTime startDate,
+                                 LocalDateTime endDate,
+                                 Pageable pageable);
+
 }

@@ -172,43 +172,81 @@ export default function ChatPage() {
 
   // =============== 메시지 로직 ===============
 
+  // WebSocket 연결 + 채널 구독 + 히스토리 로드
   useEffect(() => {
-    const fetchMessages = async () => {
-      if (!selectedChannel) {
-        setMessages([]);
-        return;
-      }
+    if (!selectedChannel || !selectedTeamId) {
+      setMessages([]);
+      return;
+    }
+
+    let unsubscribe: (() => void) | null = null;
+    let isCancelled = false;
+
+    const setup = async () => {
+      // 1. 기존 메시지 히스토리 로드
       setIsLoadingMessages(true);
       try {
         const response = await messageService.getChatHistory(
           selectedChannel.id,
         );
-        if (response.success) {
+        if (!isCancelled && response.success) {
           setMessages(response.data);
         }
       } catch (error) {
         console.error("Failed to fetch messages:", error);
       } finally {
-        setIsLoadingMessages(false);
+        if (!isCancelled) setIsLoadingMessages(false);
+      }
+
+      // 2. WebSocket 연결 및 채널 구독
+      try {
+        await messageService.connectWebSocket();
+        if (!isCancelled) {
+          unsubscribe = messageService.subscribeToChannel(
+            selectedTeamId,
+            selectedChannel.id,
+            (newMessage: MessageRes) => {
+              setMessages((prev) => {
+                if (prev.some((m) => m.id === newMessage.id)) return prev;
+                return [...prev, newMessage];
+              });
+            },
+          );
+        }
+      } catch (error) {
+        console.error("WebSocket setup failed:", error);
       }
     };
-    fetchMessages();
-  }, [selectedChannel]);
 
-  const handleSendMessage = useCallback(async () => {
-    if (!messageInput.trim() || !selectedChannel) return;
+    setup();
+
+    return () => {
+      isCancelled = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, [selectedChannel, selectedTeamId]);
+
+  // 페이지 언마운트 시 WebSocket 연결 해제
+  useEffect(() => {
+    return () => {
+      messageService.disconnectWebSocket();
+    };
+  }, []);
+
+  const handleSendMessage = useCallback(() => {
+    if (!messageInput.trim() || !selectedChannel || !selectedTeamId) return;
     try {
       const sendMessageDto: SendMessageDto = { content: messageInput };
-      await messageService.sendMessage(selectedChannel.id, sendMessageDto);
-      const response = await messageService.getChatHistory(selectedChannel.id);
-      if (response.success) {
-        setMessages(response.data);
-      }
+      messageService.sendMessage(
+        selectedTeamId,
+        selectedChannel.id,
+        sendMessageDto,
+      );
       setMessageInput("");
     } catch (error) {
       console.error("Failed to send message:", error);
     }
-  }, [messageInput, selectedChannel]);
+  }, [messageInput, selectedChannel, selectedTeamId]);
 
   const handleKeyPress = useCallback(
     (e: React.KeyboardEvent) => {
