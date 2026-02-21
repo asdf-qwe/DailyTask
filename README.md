@@ -1,7 +1,5 @@
 # DailyTask  
-> 실무에서 발생할 수 있는 성능 병목(N+1)과 인증 흐름 문제를 직접 재현하고,  
-> 측정 가능한 구조로 개선한 백엔드 중심 협업 시스템
-
+> 팀 단위 협업 환경을 위한 팀 기반 협업 메모, 커뮤니케이션, Todo 관리 서비스 입니다.
 ---
 
 ## 1. 프로젝트 개요
@@ -46,7 +44,7 @@ Controller
 
 ## 3. 성능 설계 및 개선
 
-이 프로젝트는 성능을 “측정 가능한 구조”로 설계했습니다.
+성능을 측정 가능한 구조로 설계했습니다.
 
 ### 1️⃣ N+1 문제 재현 및 개선
 
@@ -139,7 +137,6 @@ Repository 및 JPA 계층을 빠르게 검증하여 통합 테스트 비용을 �
 - AWS EC2 운영
 - HAProxy Reverse Proxy 구성
 - HTTPS 적용
-- S3 Presigned URL 업로드
 - 프로파일 분리 (prod / test / perf)
 - application-secret.yml 분리 관리
 
@@ -157,7 +154,7 @@ Repository 및 JPA 계층을 빠르게 검증하여 통합 테스트 비용을 �
 | DB | MySQL |
 | Realtime | WebSocket + STOMP |
 | Build | Gradle (Kotlin DSL) |
-| Infra | Docker, AWS EC2, S3, HAProxy |
+| Infra | Docker, AWS EC2, HAProxy |
 
 ---
 
