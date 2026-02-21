@@ -1,170 +1,151 @@
 # DailyTask  
-> 성능과 구조를 고려한 팀 협업 백엔드 시스템
+> 실무에서 발생할 수 있는 성능 병목(N+1)과 인증 흐름 문제를 직접 재현하고,  
+> 측정 가능한 구조로 개선한 백엔드 중심 협업 시스템
 
 ---
 
-## 프로젝트 소개
+## 1. 프로젝트 개요
 
-DailyTask는 팀 단위 협업 환경을 위한 팀 기반 협업 메모, 커뮤니케이션, Todo 관리 서비스 입니다.
+DailyTask는 팀 기반 협업 서비스를 구현하면서 단순 CRUD를 넘어  
+성능 병목 탐지, 요청 단위 로깅 설계, HTTP/WebSocket 통합 인증 구조 설계를 목표로 개발한 백엔드 중심 프로젝트입니다.
 
-단순 기능 구현이 아니라, 백엔드 특화에 집중한 프로젝트로 
+### 핵심 설계 목표
 
-- 팀/멤버 기반 권한 모델 설계
-- N+1 문제 재현 및 해결
-- QueryDSL 기반 동적 검색
-- Hibernate Statistics 기반 쿼리 수 추적
-- WebSocket 인증 연동
-- 요청 단위 TraceId 로깅 시스템 구축
-- 환경별 설정 분리
+- N+1 문제를 재현하고 Hibernate Statistics로 수치화
+- 요청 단위 DB 쿼리 수 추적 구조 설계
+- HTTP / WebSocket 환경에서 일관된 인증 흐름 구현
+- 운영 환경을 고려한 배포 및 구조 설계
+
+---
+
+## 2. 아키텍처 설계
+
+### 계층 구조
+
+Controller  
+→ Service (비즈니스 로직)  
+→ Repository (JPA / QueryDSL)  
+→ MySQL  
+
+### Cross-Cutting Layer
+
+- JWT 기반 인증/인가
+- WebSocket STOMP 인증 인터셉터
+- OncePerRequestFilter 기반 요청 단위 추적
+- MDC 기반 TraceId 로깅
 - Scheduler 기반 데이터 정리
 
-를 포함한 **실무 지향 백엔드 아키텍처 설계**를 목표로 개발했습니다.
-
----
-
-## 프로젝트 목표
-
-이 프로젝트는 다음 질문에 답하기 위해 설계되었습니다.
-
-- N+1 문제를 어떻게 감지할 것인가?
-- 요청 단위로 DB 쿼리 수를 어떻게 추적할 것인가?
-- WebSocket에서도 인증을 안전하게 처리할 수 있는가?
-- 단순 기능 구현을 넘어 운영 관점을 고려했는가?
-
-### 성능 문제를 의도적으로 재현하고 해결
-- N+1 문제 재현 api 구현
-- 쿼리 수 및 실행 시간 수치화
-- Fetch join 및 인덱스 적용 전/후 비교
-
-### 요청 단위 로깅 시스템 구축
-- OncePerRequestFilter 기반 요청 단위 추적
-- TraceId를 통한 요청 흐름 관리
-- 인증 실패/예외 발생 시에도 로그 수집
-
-### 팀 권한 모델 설계
-
----
-
-# 아키텍처 설계
-
-### 구조적 특징
+### 설계 원칙
 
 - 도메인 중심 패키지 분리
 - Controller / Service / Repository 책임 분리
+- Setter-less Entity + 도메인 메서드 기반 상태 변경
 - QueryDSL Custom Repository 구현
-- JWT 기반 인증/인가
-- WebSocket + STOMP 인증 인터셉터 적용
-- Scheduler 기반 데이터 정리
 
 ---
 
-# 주요 기능
+## 3. 성능 설계 및 개선
 
-## 1️⃣ 팀 협업 도메인
+이 프로젝트는 성능을 “측정 가능한 구조”로 설계했습니다.
 
-- 팀 생성
-- 초대 코드 발급
-- 팀 참여
-- 팀 멤버 권한 관리
-- 채널 생성
-- 채널 메시지 송수신 (WebSocket)
+### 1️⃣ N+1 문제 재현 및 개선
 
----
+- 팀/메모 조회 시 N+1 상황 재현 API 구현
+- Hibernate Statistics로 쿼리 수 및 실행 시간 측정
+- Fetch Join 및 인덱스 적용 전/후 비교
 
-## 2️⃣ 메모 시스템
+### 2️⃣ 요청 단위 성능 추적 시스템
 
-- 메모 CRUD
-- Visibility 설정 (팀/개인)
-- 검색 조건 기반 조회
-- QueryDSL 동적 검색
+- TraceIdFilter를 통한 요청 단위 추적
+- MDC 기반 로그 상관관계 유지
+- 인증 실패 및 예외 상황에서도 로그 수집 가능
 
----
+### 3️⃣ TeamPerfService 구현
 
-## 3️⃣ Todo 시스템
-
-- 개인/팀 Todo 생성
-- 상태 변경
-- 조건 검색 + 페이징
-- QueryDSL 기반 정렬 처리
+- 팀 단위 데이터 조회 성능 측정
+- 요청별 DB 쿼리 수 확인 가능
 
 ---
 
-## 4️⃣ 알림 시스템
-
-- 이벤트 기반 알림 생성
-- 읽음 처리
-- Scheduler 기반 정리
-
----
-
-# 인증/보안 설계
+## 4. 인증 및 보안 설계
 
 - JWT Access / Refresh Token 구조
 - CustomUserDetailsService 구현
 - SecurityUser 설계
-- RequestScope 기반 Rq 객체
+- RequestScope 기반 Rq 객체 설계
 - WebSocket STOMP 인증 인터셉터 적용
 
-### 요청 단위 추적
+### 인증 흐름 통합
 
-- TraceIdFilter
-- MDC 기반 로깅
-- RequestLoggingFilter
-
-→ 인증 실패 요청도 필터 단계에서 로그 추적 가능
+- HTTP 요청과 WebSocket 연결 시 동일한 JWT 검증 전략 사용
+- 인증 실패 시 필터 단계에서 로그 추적 가능
 
 ---
 
-# 성능 설계
+## 5. 주요 기능
 
-이 프로젝트는 성능을 "측정 가능한 구조"로 설계했습니다.
+### 1️⃣ 팀 협업 도메인
 
-## ✔ Hibernate Statistics 활용
-- 쿼리 수 측정
-- 실행 시간 측정
+- 팀 생성
+- 초대 코드 발급 및 만료 정책
+- 팀 참여
+- OWNER / MEMBER 권한 분리
+- 채널 생성
+- WebSocket 기반 실시간 메시지 송수신
 
-## ✔ TeamPerfService 구현
-- 팀 단위 데이터 조회 성능 측정
-- DB 쿼리 수 확인 가능
+### 2️⃣ 메모 시스템
 
-## ✔ QueryDSL 기반 조회 설계
-- 동적 조건 처리
-- Repository 책임 분리
-- DTO Projection 전략 분리
+- 메모 CRUD
+- Visibility (팀/개인) 정책 적용
+- QueryDSL 기반 동적 검색
+- 조건 기반 페이징 처리
+
+### 3️⃣ Todo 시스템
+
+- 개인/팀 Todo 생성
+- 상태 변경
+- 조건 검색 + 정렬 처리
+- QueryDSL 기반 동적 조회
+
+### 4️⃣ 알림 시스템
+
+- 이벤트 기반 알림 생성
+- 읽음 처리
+- Scheduler 기반 데이터 정리
 
 ---
 
-# 테스트 전략
+## 6. 테스트 전략
 
 - Unit Test
 - JPA Slice Test
-- 성능 검증 테스트
+- Integration Test
 
 ### Unit Test
-- 도메인 로직을 독립적으로 검증하는 여러 상황을 가정하고 테스트로 비즈니스 규칙이 의도대로 동작하는지 확인합니다.
+도메인 로직을 독립적으로 검증하여 비즈니스 규칙이 의도대로 동작하는지 확인합니다.
+
 ### Slice Test
-- 슬라이스 테스트는 빠르게 실행하면서 스프링 계층 기능을 실제로 검증하고, 실패 원인을 좁혀 통합 테스트 비용을 줄이기 위해 사용했습니다.
+Repository 및 JPA 계층을 빠르게 검증하여 통합 테스트 비용을 줄입니다.
+
 ### Integration Test
-- 전체 스프링 컨텍스트를 로딩하여, 인증/인가, 트랜잭션, 필터, db연동까지 실제 서비스 흐름을 검증하고 운영 환경과 유사한 조건에서 정상   동작을 확인했습니다.
-
-테스트 예시:
-
-- TeamPerfServiceTest
-- TeamServiceUnitTest
-- TodoRepositorySliceTest
+전체 스프링 컨텍스트를 로딩하여 인증/인가, 트랜잭션, 필터, DB 연동까지 실제 서비스 흐름을 검증합니다.
 
 ---
 
-# 인프라 설계
+## 7. 인프라 및 운영 설계
 
 - Docker 기반 배포
-- AWS S3 Presigned URL 업로드
+- GitHub Actions CI/CD
+- AWS EC2 운영
+- HAProxy Reverse Proxy 구성
+- HTTPS 적용
+- S3 Presigned URL 업로드
 - 프로파일 분리 (prod / test / perf)
 - application-secret.yml 분리 관리
 
 ---
 
-# 기술 스택
+## 8. 기술 스택
 
 | 분류 | 기술 |
 |------|------|
@@ -176,51 +157,31 @@ DailyTask는 팀 단위 협업 환경을 위한 팀 기반 협업 메모, 커뮤
 | DB | MySQL |
 | Realtime | WebSocket + STOMP |
 | Build | Gradle (Kotlin DSL) |
-| Infra | Docker, AWS S3 |
+| Infra | Docker, AWS EC2, S3, HAProxy |
 
 ---
 
-# 설계에서 고민한 부분
+## 9. 설계 과정에서의 고민
 
-### 1. Setter-less Entity 설계
-→ 도메인 메서드를 통한 상태 변경
-
-### 2. Record 기반 Request DTO
-→ 불변 객체 설계
-
-### 3. 초대 코드 재발급 정책
-→ 기존 코드 삭제 vs 업데이트 전략 비교
-
-### 4. SoftDelete vs HardDelete
-→ Scheduler 기반 정리 설계
-
-### 5. WebSocket 인증 흐름 통합
-→ HTTP 인증과의 통합 전략 설계
+- Setter-less Entity 설계를 통한 도메인 중심 상태 관리
+- Record 기반 Request DTO 설계로 불변성 유지
+- 초대 코드 재발급 정책 (삭제 vs 갱신 전략 비교)
+- SoftDelete vs HardDelete 전략 비교
+- HTTP / WebSocket 인증 흐름 통합 설계
 
 ---
 
-# 이 프로젝트가 보여주는 역량
+## 10. 이 프로젝트를 통해 증명한 역량
 
-✔ 도메인 설계 능력  
-✔ 성능 측정 및 개선 관점  
-✔ 보안 설계 이해도  
-✔ 로그 기반 문제 추적 설계  
-✔ 실무형 구조 설계 능력  
-✔ 운영 환경을 고려한 아키텍처 설계  
+- 도메인 중심 설계 및 계층 책임 분리
+- 성능 병목 재현 및 수치 기반 개선 경험
+- 요청 단위 로깅 기반 문제 추적 설계
+- JWT 기반 인증 및 WebSocket 통합 인증 설계
+- 운영 환경을 고려한 CI/CD 및 배포 경험
 
 ---
 
-# Live Demo
+## Live Demo
 
-- Production URL: https://pofol.site
+- Production URL: https://pofol.site  
 - API Base URL: https://api.pofol.site
-
-## Deployment
-
-- Docker 기반 배포
-- GitHub Actions CI/CD
-- AWS EC2
-- HAProxy Reverse Proxy
-- HTTPS 적용
-
-
