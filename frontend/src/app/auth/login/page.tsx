@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn, Mail, Lock, AlertCircle } from "lucide-react";
 import { authService } from "@/src/features/auth/service/authService";
+import { tokenStore } from "@/src/features/auth/service/authService";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 export default function LoginPage() {
@@ -24,6 +25,10 @@ export default function LoginPage() {
     try {
       const response = await authService.login(formData);
       if (response.success) {
+        // WebSocket 인증용 토큰 저장
+        if (response.data?.accessToken) {
+          tokenStore.setToken(response.data.accessToken);
+        }
         await login(); // AuthContext 업데이트
         router.push("/"); // 메인 페이지로 이동
       } else {

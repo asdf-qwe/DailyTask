@@ -8,6 +8,7 @@ import {
   LogOut,
   Search,
   Edit,
+  Trash2,
 } from "lucide-react";
 import { Role } from "@/src/features/team/types/team";
 import TeamMemberList from "./TeamMemberList";
@@ -29,6 +30,7 @@ interface TeamDetailsProps {
   onSearchChange: (query: string) => void;
   onInvite: () => void;
   onLeave: () => void;
+  onDelete: () => void;
   onEdit: () => void;
   onRemoveMember: (memberId: number) => void;
   getRoleBadge: (role: Role) => React.ReactElement;
@@ -41,6 +43,7 @@ const TeamDetails = memo(function TeamDetails({
   onSearchChange,
   onInvite,
   onLeave,
+  onDelete,
   onEdit,
   onRemoveMember,
   getRoleBadge,
@@ -100,7 +103,14 @@ const TeamDetails = memo(function TeamDetails({
             <UserPlus className="w-4 h-4" />
             팀원 초대
           </button>
-          {team.role === Role.MEMBER && (
+          {team.role === Role.OWNER ? (
+            <button
+              onClick={onDelete}
+              className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />팀 삭제
+            </button>
+          ) : (
             <button
               onClick={onLeave}
               className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50"

@@ -50,6 +50,7 @@ export default function TeamPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,6 +104,16 @@ export default function TeamPage() {
         const response = await teamService.getTeamMembers(selectedTeam.id);
         if (response.success) {
           setTeamMembers(response.data);
+
+          // 현재 유저의 팀 내 역할 업데이트
+          if (user) {
+            const myMember = response.data.find((m) => m.userId === user.id);
+            if (myMember && selectedTeam) {
+              setSelectedTeam((prev) =>
+                prev ? { ...prev, role: myMember.role } : prev,
+              );
+            }
+          }
         }
       } catch (error) {
         console.error("Failed to fetch team members:", error);
@@ -249,6 +260,36 @@ export default function TeamPage() {
     } catch (error) {
       console.error("Failed to leave team:", error);
       alert("팀 나가기에 실패했습니다.");
+    }
+  }, [selectedTeam]);
+
+  const handleDeleteTeam = useCallback(async () => {
+    if (!selectedTeam) return;
+
+    try {
+      const response = await teamService.deleteTeam(selectedTeam.id);
+      if (response.success) {
+        alert("팀이 삭제되었습니다.");
+        setShowDeleteModal(false);
+        setSelectedTeam(null);
+
+        // 팀 목록 새로고침
+        const teamsResponse = await teamService.getTeam();
+        if (teamsResponse.success) {
+          const convertedTeams: Team[] = teamsResponse.data.map((team) => ({
+            id: team.teamId,
+            name: team.name,
+            description: "",
+            memberCount: team.memberCount ?? 0,
+            createdAt: "",
+            role: Role.MEMBER,
+          }));
+          setTeams(convertedTeams);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete team:", error);
+      alert("팀 삭제에 실패했습니다.");
     }
   }, [selectedTeam]);
 
@@ -402,6 +443,7 @@ export default function TeamPage() {
               onSearchChange={setSearchQuery}
               onInvite={handleGenerateInviteCode}
               onLeave={() => setShowLeaveModal(true)}
+              onDelete={() => setShowDeleteModal(true)}
               onEdit={handleEditTeam}
               onRemoveMember={handleRemoveMember}
               getRoleBadge={getRoleBadge}
@@ -424,6 +466,44 @@ export default function TeamPage() {
         onClose={() => setShowLeaveModal(false)}
         onLeave={handleLeaveTeam}
       />
+
+      {/* Delete Team Modal */}
+      {showDeleteModal && selectedTeam && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">팀 삭제</h2>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                정말로 <strong>{selectedTeam.name}</strong> 팀을
+                삭제하시겠습니까?
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-800">
+                  <strong>주의:</strong> 팀 삭제 시 팀의 모든 데이터(메모, 채팅,
+                  Todo 등)에 접근할 수 없게 됩니다. 이 작업은 되돌릴 수
+                  없습니다.
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDeleteTeam}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                삭제하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Team Modal */}
       <CreateTeamModal

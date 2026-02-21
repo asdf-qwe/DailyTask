@@ -1,8 +1,11 @@
 package com.project4.DailyTask.domain.message.service;
 
+import com.project4.DailyTask.domain.channel.entity.Channel;
+import com.project4.DailyTask.domain.channel.repository.ChannelRepository;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.entity.UserRole;
 import com.project4.DailyTask.domain.user.service.AuthTokenService;
+import com.project4.DailyTask.global.checker.TeamMemberChecker;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
@@ -27,6 +30,7 @@ import java.util.Map;
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private final AuthTokenService authTokenService;
+    private final TeamMemberChecker teamMemberChecker;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -35,10 +39,25 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                 MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
         if (accessor == null) return message;
 
-        if (!StompCommand.CONNECT.equals(accessor.getCommand())) {
+        StompCommand cmd = accessor.getCommand();
+        if (cmd == null) return message;
+
+        if (StompCommand.CONNECT.equals(cmd)) {
+            authenticateOnConnect(accessor);
             return message;
         }
 
+        SecurityUser securityUser = extractSecurityUser(accessor);
+
+        if (StompCommand.SUBSCRIBE.equals(cmd) || StompCommand.SEND.equals(cmd)) {
+            Long teamId = parseTeamId(accessor.getDestination());
+            teamMemberChecker.requireJoined(teamId, securityUser.getId());
+        }
+
+        return message;
+    }
+
+    private void authenticateOnConnect(StompHeaderAccessor accessor) {
         String authHeader = accessor.getFirstNativeHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new ApiException(ErrorCode.INVALID_TOKEN);
@@ -64,7 +83,6 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
         long userId = ((Number) userIdObj).longValue();
 
-        // role은 AuthTokenService에서 role.name()으로 넣는 전제
         UserRole role;
         try {
             role = UserRole.valueOf(roleObj.toString());
@@ -75,7 +93,6 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         List<GrantedAuthority> authorities =
                 List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
 
-        // STOMP CONNECT 인증에서는 email/nickname/password가 필요 없음 (null 허용)
         SecurityUser securityUser = new SecurityUser(
                 userId,
                 null,
@@ -92,7 +109,45 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         );
 
         accessor.setUser(authentication);
+    }
 
-        return message;
+    private SecurityUser extractSecurityUser(StompHeaderAccessor accessor) {
+        if (accessor.getUser() == null) {
+            throw new ApiException(ErrorCode.INVALID_TOKEN);
+        }
+
+        if (!(accessor.getUser() instanceof Authentication authentication)) {
+            throw new ApiException(ErrorCode.INVALID_TOKEN);
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof SecurityUser)) {
+            throw new ApiException(ErrorCode.INVALID_TOKEN);
+        }
+
+        return (SecurityUser) principal;
+    }
+
+    private Long parseTeamId(String destination) {
+        if (destination == null || destination.isBlank()) {
+            throw new ApiException(ErrorCode.CHANNEL_MESSAGE_FORBIDDEN);
+        }
+
+        String[] parts = destination.split("/");
+
+        if (parts.length < 6) {
+            throw new ApiException(ErrorCode.CHANNEL_MESSAGE_FORBIDDEN);
+        }
+
+        if (!"team".equals(parts[2])) {
+            throw new ApiException(ErrorCode.CHANNEL_MESSAGE_FORBIDDEN);
+        }
+
+        try {
+            return Long.parseLong(parts[3]);
+        } catch (NumberFormatException e) {
+            throw new ApiException(ErrorCode.CHANNEL_MESSAGE_FORBIDDEN);
+        }
     }
 }
+

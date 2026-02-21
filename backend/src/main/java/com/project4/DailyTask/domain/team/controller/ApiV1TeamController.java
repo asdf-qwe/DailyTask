@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("api/v1/teams")
+@RequestMapping("/api/v1/teams")
 public class ApiV1TeamController {
     private final ApiV1TeamService teamService;
     private final TeamPerfService teamPerfService;
@@ -92,13 +92,25 @@ public class ApiV1TeamController {
         return ResponseEntity.ok(ApiResponse.ok(true));
     }
 
+    @PatchMapping("/{teamId}")
+    public ResponseEntity<ApiResponse<Boolean>> deleteTeam(@PathVariable Long teamId,
+                                                           @AuthenticationPrincipal SecurityUser user){
+
+        teamService.deleteTeam(teamId, user);
+
+        return ResponseEntity.ok(ApiResponse.ok(true));
+    }
+
     @GetMapping("/nplus1")
-    public List<TeamListRes> teamsNPlusOne() {
-        return teamPerfService.listTeamsNPlusOne();
+    @Profile("perf")
+    public ResponseEntity<ApiResponse<List<TeamListRes>>> teamsNPlusOne()
+    {
+        return ResponseEntity.ok(ApiResponse.ok(teamPerfService.listTeamsNPlusOne()));
     }
 
     @GetMapping("/fetch-join")
-    public List<TeamListRes> teamsFetchJoin() {
-        return teamPerfService.listTeamsFetchJoin();
+    @Profile("perf")
+    public ResponseEntity<ApiResponse<List<TeamListRes>>> teamsFetchJoin() {
+        return ResponseEntity.ok(ApiResponse.ok(teamPerfService.listTeamsFetchJoin()));
     }
 }

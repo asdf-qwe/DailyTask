@@ -11,10 +11,12 @@ import com.project4.DailyTask.domain.message.repository.MessageRepository;
 import com.project4.DailyTask.domain.notification.entity.NotificationType;
 import com.project4.DailyTask.domain.notification.service.ApiV1NotificationService;
 import com.project4.DailyTask.domain.team.entity.Team;
+import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
 import com.project4.DailyTask.domain.user.entity.Status;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
+import com.project4.DailyTask.global.checker.TeamMemberChecker;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
@@ -36,6 +38,7 @@ public class ApiV1MessageService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final ApiV1NotificationService notificationService;
+    private final TeamMemberChecker teamMemberChecker;
 
     @Transactional
     public void sendMessage(Long channelId, SecurityUser user, SendMessageDto dto){
@@ -45,7 +48,7 @@ public class ApiV1MessageService {
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         Team team = channel.getTeam();
-        checkMember(team, user);
+        teamMemberChecker.requireJoined(team.getId(), user.getId());
         Message message = Message.createMessage(channel, sender, dto.content(), sender.getNickname(), sender.getId());
         messageRepository.save(message);
         createNotification(team, sender);
@@ -58,17 +61,12 @@ public class ApiV1MessageService {
                 message.getCreatedAt()
         );
 
-        messagingTemplate.convertAndSend("/topic/channel/" + channelId, res);
+        messagingTemplate.convertAndSend("/topic/team/" + team.getId() + "/channel/" + channelId, res);
     }
 
-    private void checkMember(Team team, SecurityUser user){
-        boolean isMember = teamMemberRepository.existsByTeamIdAndUserId(team.getId(), user.getId());
-        if (!isMember) {
-            throw new ApiException(ErrorCode.CHANNEL_MESSAGE_FORBIDDEN);
-        }
-    }
     private void createNotification(Team team, User user){
         List<Long> receiverIds = teamMemberRepository.findAllByTeamIdWithUser(team.getId()).stream()
+                .filter(TeamMember::isJoined)
                 .map(tm -> tm.getUser().getId())
                 .filter(id -> !id.equals(user.getId()))
                 .toList();
@@ -93,7 +91,7 @@ public class ApiV1MessageService {
     public List<MessageRes> getChatHistory(Long channelId, SecurityUser user){
         Channel channel = findChannelOrThrow(channelId);
         Team team = channel.getTeam();
-        checkMember(team, user);
+        teamMemberChecker.requireReadableHistory(team.getId(), user.getId());
         return getMessages(channel);
     }
 

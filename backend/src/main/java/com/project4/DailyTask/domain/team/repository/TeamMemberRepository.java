@@ -14,18 +14,56 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
+    @Query("""
+            select (count(tm) > 0)
+            from TeamMember tm
+            join tm.team t
+            where t.id = :teamId
+            and tm.user.id = :userId
+            and tm.role = :role
+            and tm.teamStatus = :teamStatus
+            and t.deletedAt is null
+            """)
     boolean existsByTeamIdAndUserIdAndRoleAndTeamStatus(Long teamId, Long userId, Role role, TeamStatus teamStatus);
+
+    @Query("""
+            select (count(tm) > 0)
+            from TeamMember tm
+            join tm.team t
+            where t.id = :teamId
+            and tm.user.id = :userId
+            and tm.teamStatus = :teamStatus
+            and t.deletedAt is null
+            """)
     boolean existsByTeamIdAndUserIdAndTeamStatus(Long teamId, Long userId, TeamStatus teamStatus);
-    Optional<TeamMember> findByTeamIdAndRoleAndTeamStatus(Long teamId, Role role, TeamStatus teamStatus);
+
+    @Query("""
+            select tm
+            from TeamMember tm
+            join tm.team t
+            where t.id = :teamId
+            and tm.user.id = :userId
+            and t.deletedAt is null
+            """)
     Optional<TeamMember> findByTeamIdAndUserId(Long teamId, Long userId);
-    Optional<TeamMember> findByTeamIdAndUserIdAndTeamStatus(Long teamId, Long userId, TeamStatus status);
+
+    @Query("""
+            select (count(tm) > 0)
+            from TeamMember tm
+            join tm.team t
+            where t.id = :teamId
+              and tm.user.id = :userId
+              and t.deletedAt is null
+            """)
     boolean existsByTeamIdAndUserId(Long teamId, Long userId);
 
     @Query("""
             select tm
             from TeamMember tm
+            join tm.team t
             join fetch tm.user
-            where tm.team.id = :teamId
+            where t.id = :teamId
+            and t.deletedAt is null
             """)
     List<TeamMember> findAllByTeamIdWithUser(@Param("teamId") Long teamId);
 
@@ -38,7 +76,9 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
             from TeamMember tm
             join tm.team t
             left join t.teamMembers m on m.teamStatus = com.project4.DailyTask.domain.team.entity.TeamStatus.JOINED
-            where tm.user.id = :userId and tm.teamStatus = com.project4.DailyTask.domain.team.entity.TeamStatus.JOINED
+            where tm.user.id = :userId
+            and tm.teamStatus = com.project4.DailyTask.domain.team.entity.TeamStatus.JOINED
+            and t.deletedAt is null
             group by t.id, t.name
             """)
     List<GetTeamRes> findMyTeamsWithJoinedCount(@Param("userId") Long userId);
@@ -52,9 +92,11 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
                 tm.role
             )
             from TeamMember tm
+            join tm.team t
             join tm.user u
-            where tm.team.id = :teamId
+            where t.id = :teamId
               and tm.teamStatus = :status
+              and t.deletedAt is null
             """)
     List<TeamMemberListRes> findMemberListByTeamIdAndStatus(@Param("teamId") Long teamId,
                                                             @Param("status") TeamStatus status);
@@ -63,7 +105,10 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
             select tm
             from TeamMember tm
             join fetch tm.user
-            join fetch tm.team
-            where tm.team.id = :teamId and tm.user.id = :userId""")
+            join fetch tm.team t
+            where t.id = :teamId
+            and tm.user.id = :userId
+            and t.deletedAt is null
+            """)
     Optional<TeamMember> findByTeamIdAndUserIdWithUserAndTeam(Long teamId, Long userId);
 }

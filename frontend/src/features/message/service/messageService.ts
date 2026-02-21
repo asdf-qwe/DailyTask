@@ -1,4 +1,5 @@
 import { authApi } from "@/src/features/auth/service/authService";
+import { tokenStore } from "@/src/features/auth/service/authService";
 import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { MessageRes, SendMessageDto } from "../types/message";
@@ -6,7 +7,7 @@ import { MessageRes, SendMessageDto } from "../types/message";
 // API 기본 URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const WS_BASE_URL = API_BASE_URL.replace(/^http/, "ws");
-const API_PREFIX = "/api/channel";
+const API_PREFIX = "/api/v1/messages";
 
 // API 응답 타입
 interface ApiResponse<T> {
@@ -27,9 +28,18 @@ class WebSocketClient {
    * WebSocket 연결
    */
   connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (this.client?.connected) {
         resolve();
+        return;
+      }
+
+      // 연결 전 토큰 확보
+      let token: string;
+      try {
+        token = await tokenStore.ensureAccessToken();
+      } catch (error) {
+        reject(error);
         return;
       }
 
@@ -38,6 +48,22 @@ class WebSocketClient {
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
+        connectHeaders: {
+          Authorization: `Bearer ${token}`,
+        },
+        // 재연결 시에도 최신 토큰으로 갱신
+        beforeConnect: async () => {
+          try {
+            const freshToken = await tokenStore.ensureAccessToken();
+            if (this.client) {
+              this.client.connectHeaders = {
+                Authorization: `Bearer ${freshToken}`,
+              };
+            }
+          } catch (error) {
+            console.error("Failed to refresh token before reconnect:", error);
+          }
+        },
         onConnect: () => {
           console.log("WebSocket connected");
           resolve();
@@ -70,10 +96,11 @@ class WebSocketClient {
    * 채널 구독
    */
   subscribe(
+    teamId: number,
     channelId: number,
     onMessage: (message: MessageRes) => void,
   ): () => void {
-    const destination = `/topic/channel/${channelId}`;
+    const destination = `/topic/team/${teamId}/channel/${channelId}`;
 
     if (!this.client?.connected) {
       console.error("WebSocket not connected");
@@ -111,14 +138,18 @@ class WebSocketClient {
   /**
    * 메시지 전송
    */
-  sendMessage(channelId: number, messageDto: SendMessageDto): void {
+  sendMessage(
+    teamId: number,
+    channelId: number,
+    messageDto: SendMessageDto,
+  ): void {
     if (!this.client?.connected) {
       console.error("WebSocket not connected");
       return;
     }
 
     this.client.publish({
-      destination: `/app/channel/${channelId}`,
+      destination: `/app/team/${teamId}/channel/${channelId}`,
       body: JSON.stringify(messageDto),
     });
   }
@@ -145,7 +176,7 @@ export const messageService = {
     channelId: number,
   ): Promise<ApiResponse<MessageRes[]>> => {
     const response = await authApi.get<ApiResponse<MessageRes[]>>(
-      `${API_PREFIX}/${channelId}/messages`,
+      `${API_PREFIX}/channel/${channelId}`,
     );
     return response.data;
   },
@@ -168,17 +199,22 @@ export const messageService = {
    * 채널 구독
    */
   subscribeToChannel: (
+    teamId: number,
     channelId: number,
     onMessage: (message: MessageRes) => void,
   ): (() => void) => {
-    return wsClient.subscribe(channelId, onMessage);
+    return wsClient.subscribe(teamId, channelId, onMessage);
   },
 
   /**
    * 메시지 전송
    */
-  sendMessage: (channelId: number, messageDto: SendMessageDto): void => {
-    wsClient.sendMessage(channelId, messageDto);
+  sendMessage: (
+    teamId: number,
+    channelId: number,
+    messageDto: SendMessageDto,
+  ): void => {
+    wsClient.sendMessage(teamId, channelId, messageDto);
   },
 
   /**

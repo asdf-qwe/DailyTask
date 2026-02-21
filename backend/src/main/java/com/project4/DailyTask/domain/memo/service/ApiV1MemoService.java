@@ -61,11 +61,14 @@ public class ApiV1MemoService {
 
         teamMemberChecker.findMemberOrThrow(teamId, user.getId());
 
-        Page<MemoSummary> memoSummaryPage = memoRepository.searchMemo(teamId,
+        Page<MemoSummary> memoSummaryPage = memoRepository.searchMemo(
+                teamId,
+                user.getId(),          
                 cond.authorId(),
                 cond.startDate(),
                 cond.endDate(),
-                pageable);
+                pageable
+        );
 
         return new MemoListRes(
                 memoSummaryPage.getContent(),
@@ -73,15 +76,19 @@ public class ApiV1MemoService {
                 memoSummaryPage.getSize(),
                 memoSummaryPage.getTotalElements()
         );
-
     }
 
     public MemoRes getMemo(Long memoId, SecurityUser user) {
 
         Memo memo = memoRepository.findMemoWithUser(memoId)
-                .orElseThrow(()-> new ApiException(ErrorCode.MEMO_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(ErrorCode.MEMO_NOT_FOUND));
 
         teamMemberChecker.findMemberOrThrow(memo.getTeam().getId(), user.getId());
+
+        if (memo.getVisibility() == Visibility.PRIVATE
+                && !memo.getUser().getId().equals(user.getId())) {
+            throw new ApiException(ErrorCode.MEMO_ACCESS_DENIED);
+        }
 
         boolean sharedToTeam = memo.getVisibility() == Visibility.TEAM;
 
@@ -98,7 +105,6 @@ public class ApiV1MemoService {
                 memo.getCreatedAt()
         );
     }
-
     @Transactional
     public UpdateMemoRes updateMemo(UpdateMemoReq req, Long memoId, SecurityUser user) {
 
