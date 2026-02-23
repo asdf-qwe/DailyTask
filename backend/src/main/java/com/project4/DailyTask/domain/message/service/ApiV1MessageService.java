@@ -51,7 +51,7 @@ public class ApiV1MessageService {
         teamMemberChecker.requireJoined(team.getId(), userId);
         Message message = Message.createMessage(channel, sender, dto.content(), sender.getNickname(), sender.getId());
         messageRepository.save(message);
-        createNotification(team, sender);
+        createNotification(team, sender, channelId);
 
         MessageRes res = new MessageRes(
                 message.getId(),
@@ -64,7 +64,7 @@ public class ApiV1MessageService {
         messagingTemplate.convertAndSend("/topic/team/" + team.getId() + "/channel/" + channelId, res);
     }
 
-    private void createNotification(Team team, User user){
+    private void createNotification(Team team, User user, Long channelId){
         List<Long> receiverIds = teamMemberRepository.findAllByTeamIdWithUser(team.getId()).stream()
                 .filter(TeamMember::isJoined)
                 .map(tm -> tm.getUser().getId())
@@ -76,7 +76,7 @@ public class ApiV1MessageService {
                     receiverIds,
                     NotificationType.CHANNEL_MESSAGE,
                     user.getNickname() + "님이 메시지를 보냈습니다.",
-                    null,
+                    channelId,
                     team.getId()
             );
         }

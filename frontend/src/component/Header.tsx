@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { Bell, LogOut, LogIn, X } from "lucide-react";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { notificationService } from "@/src/features/notification/service/notificationService";
-import { NotificationRes } from "@/src/features/notification/types/notification";
+import {
+  NotificationRes,
+  NotificationType,
+} from "@/src/features/notification/types/notification";
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 
 interface HeaderProps {
@@ -79,11 +82,17 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
         handleMarkAsRead(notification.id);
       }
 
-      // 관련 페이지로 이동
-      if (notification.relatedMemoId) {
-        router.push(`/main/memo`);
-      } else if (notification.relatedTeamId) {
-        router.push(`/main/team`);
+      if (notification.type === NotificationType.CHANNEL_MESSAGE) {
+        const params = new URLSearchParams();
+        if (notification.relatedChannelId) {
+          params.set("channelId", String(notification.relatedChannelId));
+        }
+        if (notification.relatedTeamId) {
+          params.set("teamId", String(notification.relatedTeamId));
+        }
+
+        const query = params.toString();
+        router.push(query ? `/main/chat?${query}` : "/main/chat");
       }
 
       setShowNotifications(false);
@@ -123,12 +132,8 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
   // 알림 타입별 메시지 색상
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case "TEAM_INVITATION":
+      case "CHANNEL_MESSAGE":
         return "text-blue-600";
-      case "MEMO_SHARED":
-        return "text-green-600";
-      case "TEAM_MEMBER_JOINED":
-        return "text-purple-600";
       default:
         return "text-gray-600";
     }

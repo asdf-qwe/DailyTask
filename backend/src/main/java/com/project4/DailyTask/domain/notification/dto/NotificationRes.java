@@ -9,7 +9,7 @@ public record NotificationRes (
         Long id,
         NotificationType type,
         String message,
-        Long relatedMemoId,
+        Long relatedChannelId,
         Long relatedTeamId,
         boolean read,
         LocalDateTime createdAt
