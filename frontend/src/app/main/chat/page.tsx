@@ -1,6 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { MessageSquare, Hash, Users, Plus, X } from "lucide-react";
 import Header from "@/src/component/Header";
 import MessageList from "@/src/component/chat/MessageList";
@@ -24,7 +26,25 @@ interface Team {
 }
 
 export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">로딩 중...</p>
+          </div>
+        </div>
+      }
+    >
+      <ChatPageContent />
+    </Suspense>
+  );
+}
+
+function ChatPageContent() {
   const { user, isLoading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
 
   // 팀 관련 상태 (읽기 전용)
   const [teams, setTeams] = useState<Team[]>([]);
@@ -52,6 +72,18 @@ export default function ChatPage() {
     [teams, selectedTeamId],
   );
 
+  const requestedTeamId = useMemo(() => {
+    const value = searchParams.get("teamId");
+    const parsed = value ? Number(value) : NaN;
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [searchParams]);
+
+  const requestedChannelId = useMemo(() => {
+    const value = searchParams.get("channelId");
+    const parsed = value ? Number(value) : NaN;
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [searchParams]);
+
   // =============== 팀 정보 불러오기 (읽기 전용) ===============
 
   useEffect(() => {
@@ -67,7 +99,15 @@ export default function ChatPage() {
           }));
           setTeams(converted);
           if (converted.length > 0) {
-            setSelectedTeamId((prev) => prev ?? converted[0].id);
+            setSelectedTeamId((prev) => {
+              if (
+                requestedTeamId !== null &&
+                converted.some((team) => team.id === requestedTeamId)
+              ) {
+                return requestedTeamId;
+              }
+              return prev ?? converted[0].id;
+            });
           }
         }
       } catch (error) {
@@ -75,7 +115,7 @@ export default function ChatPage() {
       }
     };
     fetchTeams();
-  }, [user]);
+  }, [user, requestedTeamId]);
 
   // 팀 멤버 불러오기 (읽기 전용 - 멤버 패널용)
   useEffect(() => {
@@ -117,6 +157,18 @@ export default function ChatPage() {
     setSelectedChannel(null);
     setMessages([]);
   }, [user, selectedTeamId]);
+
+  useEffect(() => {
+    if (!requestedChannelId || channels.length === 0) return;
+
+    const matchedChannel = channels.find(
+      (channel) => channel.id === requestedChannelId,
+    );
+
+    if (matchedChannel) {
+      setSelectedChannel(matchedChannel);
+    }
+  }, [channels, requestedChannelId]);
 
   const handleCreateChannel = useCallback(async () => {
     if (!newChannelName.trim() || selectedTeamId === null) return;

@@ -22,7 +22,7 @@ export default function MemoPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedMemo, setSelectedMemo] = useState<MemoRes | null>(null);
-  const [filterTeam, setFilterTeam] = useState("all");
+  const [filterTeam, setFilterTeam] = useState<string>("all");
   const [filterPublic, setFilterPublic] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -53,6 +53,7 @@ export default function MemoPage() {
         if (response.success && response.data.length > 0) {
           setTeams(response.data);
           setTeamId(response.data[0].teamId); // 첫 번째 팀 사용
+          setFilterTeam(response.data[0].teamId.toString());
         }
       } catch (error) {
         console.error("Failed to fetch team:", error);
@@ -114,8 +115,19 @@ export default function MemoPage() {
   }, [memos, filterPublic, debouncedSearchQuery]);
 
   const handleCreateMemo = useCallback(() => {
+    if (teamId === null && teams.length > 0) {
+      setTeamId(teams[0].teamId);
+    }
+
     setFormData({ title: "", content: "", sharedToTeam: true });
     setShowCreateModal(true);
+  }, [teamId, teams]);
+
+  const handleTeamFilterChange = useCallback((value: string) => {
+    setFilterTeam(value);
+    setCurrentPage(0);
+
+    setTeamId(Number(value));
   }, []);
 
   const handleSaveMemo = useCallback(async () => {
@@ -272,10 +284,9 @@ export default function MemoPage() {
               <Filter className="w-5 h-5 text-gray-400" />
               <select
                 value={filterTeam}
-                onChange={(e) => setFilterTeam(e.target.value)}
+                onChange={(e) => handleTeamFilterChange(e.target.value)}
                 className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none cursor-pointer hover:bg-gray-50"
               >
-                <option value="all">모든 팀</option>
                 {teams.map((team) => (
                   <option key={team.teamId} value={team.teamId.toString()}>
                     {team.name}
