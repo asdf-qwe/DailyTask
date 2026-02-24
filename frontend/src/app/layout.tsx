@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/src/features/auth/context/AuthContext";
+import { AppQueryProvider } from "@/src/features/query/context/QueryProvider";
+import { TeamProvider } from "@/src/features/team/context/TeamContext";
 
 export const metadata: Metadata = {
   title: "DailyTask - 팀 협업 플랫폼",
@@ -15,7 +17,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <AppQueryProvider>
+            <TeamProvider>{children}</TeamProvider>
+          </AppQueryProvider>
+        </AuthProvider>
       </body>
     </html>
   );

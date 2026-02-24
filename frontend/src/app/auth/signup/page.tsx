@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -35,7 +35,6 @@ export default function SignupPage() {
       [name]: value,
     });
 
-    // 입력값이 변경되면 중복 확인 상태 초기화
     if (name === "loginId") {
       setValidation((prev) => ({
         ...prev,
@@ -64,7 +63,6 @@ export default function SignupPage() {
 
     try {
       const response = await authService.checkLoginId(formData.loginId);
-      console.log("아이디 중복 확인 응답:", response);
       if (response.success) {
         setValidation((prev) => ({
           ...prev,
@@ -76,8 +74,6 @@ export default function SignupPage() {
         }));
       }
     } catch (err: any) {
-      console.error("아이디 중복 확인 에러:", err);
-      console.error("에러 응답:", err.response);
       const errorMessage =
         err.response?.data?.message || "이미 사용 중인 아이디입니다";
       setValidation((prev) => ({
@@ -104,7 +100,6 @@ export default function SignupPage() {
       return;
     }
 
-    // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setValidation((prev) => ({
@@ -120,7 +115,6 @@ export default function SignupPage() {
 
     try {
       const response = await authService.checkEmail(formData.email);
-      console.log("이메일 중복 확인 응답:", response);
       if (response.success) {
         setValidation((prev) => ({
           ...prev,
@@ -132,8 +126,6 @@ export default function SignupPage() {
         }));
       }
     } catch (err: any) {
-      console.error("이메일 중복 확인 에러:", err);
-      console.error("에러 응답:", err.response);
       const errorMessage =
         err.response?.data?.message || "이미 사용 중인 이메일입니다";
       setValidation((prev) => ({
@@ -151,7 +143,6 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
-    // 유효성 검증
     if (!validation.loginId.available) {
       setError("아이디 중복 확인을 해주세요");
       return;
@@ -206,7 +197,6 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-800 to-black rounded-2xl mb-4">
             <span className="text-white font-bold text-2xl">D</span>
@@ -215,7 +205,6 @@ export default function SignupPage() {
           <p className="text-gray-600">새로운 계정을 만들어보세요</p>
         </div>
 
-        {/* Signup Form */}
         <div className="bg-white rounded-xl border border-gray-200 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
@@ -225,7 +214,6 @@ export default function SignupPage() {
               </div>
             )}
 
-            {/* 아이디 */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 아이디 <span className="text-red-500">*</span>
@@ -271,7 +259,6 @@ export default function SignupPage() {
               )}
             </div>
 
-            {/* 비밀번호 */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 비밀번호 <span className="text-red-500">*</span>
@@ -292,7 +279,6 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* 비밀번호 확인 */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 비밀번호 확인 <span className="text-red-500">*</span>
@@ -334,7 +320,6 @@ export default function SignupPage() {
               )}
             </div>
 
-            {/* 이메일 */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 이메일 <span className="text-red-500">*</span>
@@ -380,7 +365,6 @@ export default function SignupPage() {
               )}
             </div>
 
-            {/* 닉네임 */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 닉네임 <span className="text-red-500">*</span>

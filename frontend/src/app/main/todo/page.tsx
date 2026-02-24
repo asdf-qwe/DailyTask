@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckSquare, Plus, Search, Filter, Users } from "lucide-react";
 import Header from "@/src/component/Header";
 import TodoCard from "@/src/component/todo/TodoCard";
@@ -8,8 +9,8 @@ import TodoStats from "@/src/component/todo/TodoStats";
 import TodoCreateModal from "@/src/component/todo/TodoCreateModal";
 import TodoEditModal from "@/src/component/todo/TodoEditModal";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { useTeam } from "@/src/features/team/context/TeamContext";
 import { todoService } from "@/src/features/todo/service/todoService";
-import { teamService } from "@/src/features/team/service/teamService";
 import {
   TodoSummary,
   TodoStatus,
@@ -19,6 +20,8 @@ import {
 
 export default function TodoPage() {
   const { isLoading: authLoading } = useAuth();
+  const { teams: cachedTeams } = useTeam();
+  const queryClient = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<TodoSummary | null>(null);
@@ -26,17 +29,12 @@ export default function TodoPage() {
   const [sortBy, setSortBy] = useState("dueDate");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [todos, setTodos] = useState<TodoSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
 
-  // 팀 관련 state
   const [viewMode, setViewMode] = useState<"personal" | "team">("personal");
   const [teams, setTeams] = useState<{ teamId: number; name: string }[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
-  // 폼 상태
   const [formData, setFormData] = useState({
     title: "",
     dueDate: "",
@@ -48,62 +46,37 @@ export default function TodoPage() {
     status: TodoStatus.TODO,
   });
 
-  // 팀 목록 불러오기
   useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const response = await teamService.getTeam();
-        if (response.success && response.data.length > 0) {
-          setTeams(response.data);
-          setSelectedTeamId(response.data[0].teamId);
-        }
-      } catch (error) {
-        console.error("Failed to fetch teams:", error);
-      }
-    };
-    fetchTeams();
-  }, []);
+    setTeams(cachedTeams);
+    if (cachedTeams.length > 0 && selectedTeamId === null) {
+      setSelectedTeamId(cachedTeams[0].teamId);
+    }
+  }, [cachedTeams, selectedTeamId]);
 
-  // Todo 목록 불러오기
-  const fetchTodos = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: todoPage, isLoading } = useQuery({
+    queryKey: ["todos", viewMode, selectedTeamId, page, filterStatus],
+    queryFn: async () => {
       const cond =
         filterStatus !== "all"
           ? { status: filterStatus as TodoStatus }
           : undefined;
 
-      let response;
       if (viewMode === "personal") {
-        response = await todoService.getTodoList(page, 20, cond);
-      } else {
-        if (selectedTeamId === null) {
-          setTodos([]);
-          setTotalElements(0);
-          setIsLoading(false);
-          return;
-        }
-        response = await todoService.getTeamTodoList(
-          selectedTeamId,
-          page,
-          20,
-          cond,
-        );
+        return await todoService.getTodoList(page, 20, cond);
       }
-      setTodos(response.content);
-      setTotalElements(response.totalElements);
-    } catch (error) {
-      console.error("Failed to fetch todos:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filterStatus, page, viewMode, selectedTeamId]);
 
-  useEffect(() => {
-    fetchTodos();
-  }, [fetchTodos]);
+      if (selectedTeamId === null) {
+        return { content: [] as TodoSummary[], totalElements: 0 };
+      }
 
-  // 검색 디바운싱 (300ms)
+      return await todoService.getTeamTodoList(selectedTeamId, page, 20, cond);
+    },
+    enabled: !authLoading,
+  });
+
+  const todos = todoPage?.content ?? [];
+  const totalElements = todoPage?.totalElements ?? 0;
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -112,7 +85,6 @@ export default function TodoPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // 필터링 및 정렬 (useMemo로 최적화)
   const filteredAndSortedTodos = useMemo(() => {
     return todos
       .filter((todo) => {
@@ -155,12 +127,11 @@ export default function TodoPage() {
 
       setShowCreateModal(false);
       setFormData({ title: "", dueDate: "" });
-      fetchTodos();
-    } catch (error) {
-      console.error("Failed to create todo:", error);
+      await queryClient.invalidateQueries({ queryKey: ["todos"] });
+    } catch {
       alert("Todo 생성에 실패했습니다.");
     }
-  }, [formData, fetchTodos, viewMode, selectedTeamId]);
+  }, [formData, viewMode, selectedTeamId, queryClient]);
 
   const handleStatusChange = useCallback(
     async (todoId: number, newStatus: TodoStatus) => {
@@ -175,13 +146,12 @@ export default function TodoPage() {
         };
 
         await todoService.updateTodo(todoId, req);
-        fetchTodos();
-      } catch (error) {
-        console.error("Failed to update todo status:", error);
+        await queryClient.invalidateQueries({ queryKey: ["todos"] });
+      } catch {
         alert("상태 변경에 실패했습니다.");
       }
     },
-    [todos, fetchTodos],
+    [todos, queryClient],
   );
 
   const handleDeleteTodo = useCallback(
@@ -190,13 +160,12 @@ export default function TodoPage() {
 
       try {
         await todoService.deleteTodo(todoId);
-        fetchTodos();
-      } catch (error) {
-        console.error("Failed to delete todo:", error);
+        await queryClient.invalidateQueries({ queryKey: ["todos"] });
+      } catch {
         alert("삭제에 실패했습니다.");
       }
     },
-    [fetchTodos],
+    [queryClient],
   );
 
   const handleEditTodo = useCallback((todo: TodoSummary) => {
@@ -222,12 +191,11 @@ export default function TodoPage() {
       await todoService.updateTodo(selectedTodo.id, req);
       setShowEditModal(false);
       setSelectedTodo(null);
-      fetchTodos();
-    } catch (error) {
-      console.error("Failed to update todo:", error);
+      await queryClient.invalidateQueries({ queryKey: ["todos"] });
+    } catch {
       alert("수정에 실패했습니다.");
     }
-  }, [selectedTodo, editFormData, fetchTodos]);
+  }, [selectedTodo, editFormData, queryClient]);
 
   const getStatusColor = (status: TodoStatus) => {
     switch (status) {
@@ -293,7 +261,6 @@ export default function TodoPage() {
     <div className="min-h-screen bg-gray-50">
       <Header currentPage="todo" />
 
-      {/* Page Header */}
       <section className="max-w-7xl mx-auto px-6 pt-8 pb-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -306,7 +273,6 @@ export default function TodoPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* 개인/팀 전환 버튼 */}
             <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("personal")}
@@ -330,7 +296,6 @@ export default function TodoPage() {
               </button>
             </div>
 
-            {/* 팀 선택 드롭다운 (팀 모드일 때만) */}
             {viewMode === "team" && teams.length > 0 && (
               <select
                 value={selectedTeamId || ""}
@@ -354,10 +319,8 @@ export default function TodoPage() {
           </div>
         </div>
 
-        {/* Stats */}
         <TodoStats todos={todos} totalElements={totalElements} />
 
-        {/* Filter and Search */}
         <div className="bg-white rounded-xl p-4 border border-gray-200 mb-6">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 flex-1 min-w-[300px]">
@@ -395,7 +358,6 @@ export default function TodoPage() {
         </div>
       </section>
 
-      {/* Todo List */}
       <section className="max-w-7xl mx-auto px-6 pb-12">
         {isLoading ? (
           <div className="text-center py-12">
@@ -427,7 +389,6 @@ export default function TodoPage() {
         )}
       </section>
 
-      {/* Create Modal */}
       <TodoCreateModal
         show={showCreateModal}
         formData={formData}
@@ -442,7 +403,6 @@ export default function TodoPage() {
         onFormChange={setFormData}
       />
 
-      {/* Edit Modal */}
       <TodoEditModal
         show={showEditModal}
         formData={editFormData}
