@@ -9,7 +9,7 @@ import {
   NotificationRes,
   NotificationType,
 } from "@/src/features/notification/types/notification";
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface HeaderProps {
   currentPage?: "dashboard" | "memo" | "chat" | "todo" | "team";
@@ -36,7 +36,6 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
     router.push("/auth/login");
   }, [logout, router]);
 
-  // 알림 목록 가져오기
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated) return;
 
@@ -47,16 +46,12 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
         setUnreadCount(response.data.filter((n) => !n.read).length);
       }
     } catch (error: any) {
-      // 403 에러는 알림 기능이 비활성화되었거나 권한이 없는 경우이므로 조용히 처리
       if (error.response?.status === 403) {
         return;
       }
-      // 다른 에러는 로그만 출력
-      console.error("Failed to fetch notifications:", error);
     }
   }, [isAuthenticated]);
 
-  // 알림 읽음 처리
   const handleMarkAsRead = useCallback(
     async (id: number) => {
       try {
@@ -65,17 +60,14 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
           fetchNotifications();
         }
       } catch (error: any) {
-        // 403 에러는 조용히 처리
         if (error.response?.status === 403) {
           return;
         }
-        console.error("Failed to mark notification as read:", error);
       }
     },
     [fetchNotifications],
   );
 
-  // 알림 클릭 처리
   const handleNotificationClick = useCallback(
     (notification: NotificationRes) => {
       if (!notification.read) {
@@ -100,7 +92,6 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
     [handleMarkAsRead, router],
   );
 
-  // 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -120,16 +111,47 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
     };
   }, [showNotifications]);
 
-  // 알림 목록 주기적으로 갱신 (60초로 변경하여 네트워크 요청 감소)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!showNotifications) return;
+    fetchNotifications();
+  }, [showNotifications, fetchNotifications]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const startPolling = () => {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 60000); // 60초마다
-      return () => clearInterval(interval);
+      interval = setInterval(fetchNotifications, 120000);
+    };
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = undefined;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    if (document.visibilityState === "visible") {
+      startPolling();
     }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [isAuthenticated, fetchNotifications]);
 
-  // 알림 타입별 메시지 색상
   const getNotificationColor = (type: string) => {
     switch (type) {
       case "CHANNEL_MESSAGE":

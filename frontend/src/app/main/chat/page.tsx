@@ -9,6 +9,7 @@ import MessageList from "@/src/component/chat/MessageList";
 import MessageInput from "@/src/component/chat/MessageInput";
 import CreateChannelModal from "@/src/component/chat/CreateChannelModal";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { useTeam } from "@/src/features/team/context/TeamContext";
 import { channelService } from "@/src/features/channel/service/channelService";
 import { teamService } from "@/src/features/team/service/teamService";
 import { messageService } from "@/src/features/message/service/messageService";
@@ -44,10 +45,10 @@ export default function ChatPage() {
 
 function ChatPageContent() {
   const { user, isLoading: authLoading } = useAuth();
+  const { teams: cachedTeams } = useTeam();
   const searchParams = useSearchParams();
 
   // 팀 관련 상태 (읽기 전용)
-  const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMemberListRes[]>([]);
   const [showMemberPanel, setShowMemberPanel] = useState(false);
@@ -67,6 +68,16 @@ function ChatPageContent() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   // 현재 선택된 팀 객체
+  const teams = useMemo<Team[]>(
+    () =>
+      cachedTeams.map((team) => ({
+        id: team.teamId,
+        name: team.name,
+        memberCount: team.memberCount,
+      })),
+    [cachedTeams],
+  );
+
   const selectedTeam = useMemo(
     () => teams.find((t) => t.id === selectedTeamId) || null,
     [teams, selectedTeamId],
@@ -87,37 +98,25 @@ function ChatPageContent() {
   // =============== 팀 정보 불러오기 (읽기 전용) ===============
 
   useEffect(() => {
-    const fetchTeams = async () => {
-      if (!user) return;
-      try {
-        const response = await teamService.getTeam();
-        if (response.success) {
-          const converted: Team[] = response.data.map((t) => ({
-            id: t.teamId,
-            name: t.name,
-            memberCount: t.memberCount ?? 0,
-          }));
-          setTeams(converted);
-          if (converted.length > 0) {
-            setSelectedTeamId((prev) => {
-              if (
-                requestedTeamId !== null &&
-                converted.some((team) => team.id === requestedTeamId)
-              ) {
-                return requestedTeamId;
-              }
-              return prev ?? converted[0].id;
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch teams:", error);
-      }
-    };
-    fetchTeams();
-  }, [user, requestedTeamId]);
+    if (teams.length === 0) {
+      setSelectedTeamId(null);
+      return;
+    }
 
-  // 팀 멤버 불러오기 (읽기 전용 - 멤버 패널용)
+    setSelectedTeamId((prev) => {
+      if (
+        requestedTeamId !== null &&
+        teams.some((team) => team.id === requestedTeamId)
+      ) {
+        return requestedTeamId;
+      }
+      if (prev !== null && teams.some((team) => team.id === prev)) {
+        return prev;
+      }
+      return teams[0].id;
+    });
+  }, [teams, requestedTeamId]);
+
   useEffect(() => {
     const fetchMembers = async () => {
       if (!selectedTeamId) return;
@@ -126,14 +125,10 @@ function ChatPageContent() {
         if (response.success) {
           setTeamMembers(response.data);
         }
-      } catch (error) {
-        console.error("Failed to fetch team members:", error);
-      }
+      } catch {}
     };
     fetchMembers();
   }, [selectedTeamId]);
-
-  // =============== 채널 로직 ===============
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -147,8 +142,7 @@ function ChatPageContent() {
         if (response.success) {
           setChannels(response.data);
         }
-      } catch (error) {
-        console.error("Failed to fetch channels:", error);
+      } catch {
       } finally {
         setIsLoadingChannels(false);
       }
@@ -189,8 +183,7 @@ function ChatPageContent() {
             (response.message || "알 수 없는 오류"),
         );
       }
-    } catch (error) {
-      console.error("Failed to create channel:", error);
+    } catch {
       alert("채널 생성 중 오류가 발생했습니다.");
     }
   }, [newChannelName, selectedTeamId]);
@@ -214,17 +207,13 @@ function ChatPageContent() {
           }
           alert("채널이 삭제되었습니다.");
         }
-      } catch (error) {
-        console.error("Failed to delete channel:", error);
+      } catch {
         alert("채널 삭제에 실패했습니다.");
       }
     },
     [selectedTeamId, selectedChannel],
   );
 
-  // =============== 메시지 로직 ===============
-
-  // WebSocket 연결 + 채널 구독 + 히스토리 로드
   useEffect(() => {
     if (!selectedChannel || !selectedTeamId) {
       setMessages([]);
@@ -235,7 +224,6 @@ function ChatPageContent() {
     let isCancelled = false;
 
     const setup = async () => {
-      // 1. 기존 메시지 히스토리 로드
       setIsLoadingMessages(true);
       try {
         const response = await messageService.getChatHistory(
@@ -244,13 +232,11 @@ function ChatPageContent() {
         if (!isCancelled && response.success) {
           setMessages(response.data);
         }
-      } catch (error) {
-        console.error("Failed to fetch messages:", error);
+      } catch {
       } finally {
         if (!isCancelled) setIsLoadingMessages(false);
       }
 
-      // 2. WebSocket 연결 및 채널 구독
       try {
         await messageService.connectWebSocket();
         if (!isCancelled) {
@@ -265,9 +251,7 @@ function ChatPageContent() {
             },
           );
         }
-      } catch (error) {
-        console.error("WebSocket setup failed:", error);
-      }
+      } catch {}
     };
 
     setup();
@@ -278,7 +262,6 @@ function ChatPageContent() {
     };
   }, [selectedChannel, selectedTeamId]);
 
-  // 페이지 언마운트 시 WebSocket 연결 해제
   useEffect(() => {
     return () => {
       messageService.disconnectWebSocket();
@@ -295,9 +278,7 @@ function ChatPageContent() {
         sendMessageDto,
       );
       setMessageInput("");
-    } catch (error) {
-      console.error("Failed to send message:", error);
-    }
+    } catch {}
   }, [messageInput, selectedChannel, selectedTeamId]);
 
   const handleKeyPress = useCallback(
@@ -309,8 +290,6 @@ function ChatPageContent() {
     },
     [handleSendMessage],
   );
-
-  // =============== 렌더링 ===============
 
   if (authLoading) {
     return (
@@ -324,10 +303,10 @@ function ChatPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <Header currentPage="chat" />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* 왼쪽: 팀 목록 사이드바 */}
         <div className="w-16 bg-gray-900 flex flex-col items-center py-4 gap-2">
           {teams.map((team) => (
@@ -404,7 +383,7 @@ function ChatPageContent() {
             </div>
 
             {/* 오른쪽: 메시지 영역 */}
-            <div className="flex-1 flex flex-col bg-white">
+            <div className="flex-1 min-h-0 flex flex-col bg-white">
               {selectedChannel ? (
                 <>
                   {/* 채널 헤더 */}
@@ -438,10 +417,10 @@ function ChatPageContent() {
                   </div>
 
                   {/* 메시지 + 멤버 패널 */}
-                  <div className="flex-1 flex overflow-hidden">
-                    <div className="flex-1 flex flex-col">
+                  <div className="flex-1 min-h-0 flex overflow-hidden">
+                    <div className="flex-1 min-h-0 flex flex-col">
                       {/* 메시지 목록 */}
-                      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      <div className="flex-1 min-h-0">
                         <MessageList
                           messages={messages}
                           currentUserId={user?.id}

@@ -1,7 +1,16 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { authService } from "@/src/features/auth/service/authService";
+import { tokenStore } from "@/src/features/auth/service/authService";
 import { UserResponseDto } from "@/src/features/auth/types/auth";
 
 interface AuthContextType {
@@ -18,67 +27,134 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const lastRefreshSuccessAtRef = useRef<number>(0);
+  const isRefreshingRef = useRef(false);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const response = await authService.getMyProfile();
       if (response.success) {
-        console.log(
-          "👤 사용자 인증 상태 유지:",
-          response.data.nickname || response.data.email,
-        );
         setUser(response.data);
       }
-    } catch (error: any) {
-      console.error(
-        "❌ 사용자 인증 실패:",
-        error.response?.status,
-        error.message,
-      );
-      if (error.response?.status === 401) {
-        console.warn("🔓 인증 토큰 만료 - 로그아웃 처리");
-      }
+    } catch {
       setUser(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUser();
   }, []);
 
-  const login = async () => {
-    await fetchUser();
-  };
+  useEffect(() => {
+    if (!user) return;
 
-  const logout = async () => {
+    const REFRESH_BUFFER_MS = 60 * 1000;
+    const MIN_REFRESH_DELAY_MS = 30 * 1000;
+    const FALLBACK_REFRESH_MS = 8 * 60 * 1000;
+    const VISIBILITY_GUARD_MS = 3 * 60 * 1000;
+    let timeoutId: number | null = null;
+
+    const scheduleNextRefresh = () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+
+      const tokenExpiryMs = tokenStore.getTokenExpiryMs();
+      const now = Date.now();
+
+      const delayMs =
+        tokenExpiryMs !== null
+          ? Math.max(
+              tokenExpiryMs - now - REFRESH_BUFFER_MS,
+              MIN_REFRESH_DELAY_MS,
+            )
+          : FALLBACK_REFRESH_MS;
+
+      timeoutId = window.setTimeout(() => {
+        void refreshSession();
+      }, delayMs);
+    };
+
+    const refreshSession = async () => {
+      if (isRefreshingRef.current) return;
+      isRefreshingRef.current = true;
+
+      try {
+        const response = await authService.refreshToken();
+        if (response.success && response.data?.accessToken) {
+          tokenStore.setToken(response.data.accessToken);
+          lastRefreshSuccessAtRef.current = Date.now();
+          scheduleNextRefresh();
+        }
+      } catch {
+        tokenStore.setToken(null);
+        setUser(null);
+      } finally {
+        isRefreshingRef.current = false;
+      }
+    };
+
+    if (tokenStore.getTokenExpiryMs() === null) {
+      void refreshSession();
+    } else {
+      scheduleNextRefresh();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const elapsedSinceLastSuccess =
+          Date.now() - lastRefreshSuccessAtRef.current;
+        if (elapsedSinceLastSuccess < VISIBILITY_GUARD_MS) {
+          return;
+        }
+        void refreshSession();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user]);
+
+  const login = useCallback(async () => {
+    await fetchUser();
+  }, [fetchUser]);
+
+  const logout = useCallback(async () => {
     try {
       await authService.logout();
+      tokenStore.setToken(null);
       setUser(null);
-    } catch (error) {
-      console.error("Logout failed:", error);
+    } catch {
+      tokenStore.setToken(null);
+      setUser(null);
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     await fetchUser();
-  };
+  }, [fetchUser]);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        refreshUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      login,
+      logout,
+      refreshUser,
+    }),
+    [user, isLoading, login, logout, refreshUser],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

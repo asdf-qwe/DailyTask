@@ -6,21 +6,18 @@ import {
   UserResponseDto,
 } from "../types/auth";
 
-// API 기본 URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const AUTH_PREFIX = "/api/v1/auth";
 const USER_PREFIX = "/api/v1/users";
 
-// Axios 인스턴스 생성
 const authApi = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // 쿠키 전송을 위해 필요
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// API 응답 타입
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -28,7 +25,6 @@ interface ApiResponse<T> {
   errorCode?: string;
 }
 
-// 토큰 갱신 중 여부를 추적하는 변수
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
@@ -47,19 +43,13 @@ const processQueue = (error: Error | null = null) => {
   failedQueue = [];
 };
 
-// 응답 인터셉터 (에러 처리 및 자동 토큰 갱신)
 authApi.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
 
-    // 401 에러 발생 시 토큰 갱신 시도
     if (error.response?.status === 401 && !originalRequest._retry) {
-      console.warn("🔒 401 에러 발생 - 토큰 갱신 시도", originalRequest.url);
-
       if (isRefreshing) {
-        console.log("⏳ 이미 토큰 갱신 중 - 대기열에 추가");
-        // 이미 토큰 갱신 중이면 대기열에 추가
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -75,29 +65,25 @@ authApi.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        console.log("🔄 Refresh Token 요청 중...");
-        await authApi.post(`${AUTH_PREFIX}/refresh`);
-        console.log("✅ 토큰 갱신 성공");
+        const refreshResponse = await authApi.post<
+          ApiResponse<TokenResponseDto>
+        >(`${AUTH_PREFIX}/refresh`);
+        if (
+          refreshResponse.data.success &&
+          refreshResponse.data.data?.accessToken
+        ) {
+          tokenStore.setToken(refreshResponse.data.data.accessToken);
+        }
 
         processQueue(null);
         isRefreshing = false;
 
-        // 원래 요청 재시도
         return authApi(originalRequest);
-      } catch (refreshError: any) {
-        console.error(
-          "❌ 토큰 갱신 실패:",
-          refreshError.response?.status,
-          refreshError.response?.data,
-        );
-        console.error("🍪 현재 쿠키:", document.cookie);
-
+      } catch (refreshError) {
         processQueue(refreshError as Error);
         isRefreshing = false;
 
-        // 로그인 페이지로 리다이렉트 (클라이언트 사이드에서만)
         if (typeof window !== "undefined") {
-          console.warn("🚪 로그인 페이지로 이동");
           window.location.href = "/auth/login";
         }
 
@@ -109,13 +95,7 @@ authApi.interceptors.response.use(
   },
 );
 
-/**
- * 인증 서비스
- */
 export const authService = {
-  /**
-   * 회원가입
-   */
   signup: async (
     request: SignupRequestDto,
   ): Promise<ApiResponse<UserResponseDto>> => {
@@ -126,9 +106,6 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * 이메일 중복 확인
-   */
   checkEmail: async (email: string): Promise<ApiResponse<string>> => {
     const response = await authApi.get<ApiResponse<string>>(
       `${USER_PREFIX}/check-email`,
@@ -139,9 +116,6 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * 로그인 ID 중복 확인
-   */
   checkLoginId: async (loginId: string): Promise<ApiResponse<string>> => {
     const response = await authApi.get<ApiResponse<string>>(
       `${USER_PREFIX}/check-loginId`,
@@ -152,10 +126,6 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * 로그인
-   * 쿠키에 토큰이 자동으로 저장됨 (HttpOnly)
-   */
   login: async (
     request: LoginRequestDto,
   ): Promise<ApiResponse<TokenResponseDto>> => {
@@ -166,9 +136,6 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * 로그아웃
-   */
   logout: async (): Promise<ApiResponse<string>> => {
     const response = await authApi.post<ApiResponse<string>>(
       `${AUTH_PREFIX}/logout`,
@@ -176,19 +143,16 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * 토큰 갱신
-   */
   refreshToken: async (): Promise<ApiResponse<TokenResponseDto>> => {
     const response = await authApi.post<ApiResponse<TokenResponseDto>>(
       `${AUTH_PREFIX}/refresh`,
     );
+    if (response.data.success && response.data.data?.accessToken) {
+      tokenStore.setToken(response.data.data.accessToken);
+    }
     return response.data;
   },
 
-  /**
-   * 내 프로필 조회
-   */
   getMyProfile: async (): Promise<ApiResponse<UserResponseDto>> => {
     const response = await authApi.get<ApiResponse<UserResponseDto>>(
       `${AUTH_PREFIX}/me`,
@@ -197,24 +161,55 @@ export const authService = {
   },
 };
 
-// Axios 인스턴스도 export (다른 곳에서 사용할 수 있도록)
 export { authApi };
 
-// ============ Access Token 저장소 (WebSocket 인증용) ============
 let _accessToken: string | null = null;
+
+const decodeJwtPayload = (token: string): { exp?: number } | null => {
+  try {
+    const tokenParts = token.split(".");
+    if (tokenParts.length < 2) return null;
+
+    const normalizedBase64 = tokenParts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const paddingLength = (4 - (normalizedBase64.length % 4)) % 4;
+    const base64Payload = normalizedBase64.padEnd(
+      normalizedBase64.length + paddingLength,
+      "=",
+    );
+
+    const decode =
+      typeof window !== "undefined" && typeof window.atob === "function"
+        ? window.atob
+        : typeof atob === "function"
+          ? atob
+          : null;
+
+    if (!decode) return null;
+
+    const payloadText = decode(base64Payload);
+    return JSON.parse(payloadText) as { exp?: number };
+  } catch {
+    return null;
+  }
+};
 
 export const tokenStore = {
   getToken: (): string | null => _accessToken,
+  getTokenExpiryMs: (): number | null => {
+    if (!_accessToken) return null;
+    const payload = decodeJwtPayload(_accessToken);
+    if (!payload || typeof payload.exp !== "number") return null;
+    return payload.exp * 1000;
+  },
   setToken: (token: string | null): void => {
     _accessToken = token;
   },
-  /**
-   * accessToken이 없거나 만료되었을 때 refresh API로 재발급하여 tokenStore 갱신
-   */
+
   ensureAccessToken: async (): Promise<string> => {
     if (_accessToken) return _accessToken;
 
-    // accessToken이 없으면 refresh 쿠키로 재발급 시도
     try {
       const response = await authApi.post<ApiResponse<TokenResponseDto>>(
         `${AUTH_PREFIX}/refresh`,
@@ -223,9 +218,7 @@ export const tokenStore = {
         _accessToken = response.data.data.accessToken;
         return _accessToken;
       }
-    } catch (error) {
-      console.error("Failed to refresh access token for WebSocket:", error);
-    }
+    } catch {}
     throw new Error("No valid access token available");
   },
 };

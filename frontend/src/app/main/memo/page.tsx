@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, Plus, Search, Filter } from "lucide-react";
 import Header from "@/src/component/Header";
 import MemoCard from "@/src/component/memo/MemoCard";
@@ -8,8 +9,8 @@ import MemoStats from "@/src/component/memo/MemoStats";
 import MemoCreateModal from "@/src/component/memo/MemoCreateModal";
 import MemoDetailModal from "@/src/component/memo/MemoDetailModal";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { useTeam } from "@/src/features/team/context/TeamContext";
 import { memoService } from "@/src/features/memo/service/memoSercice";
-import { teamService } from "@/src/features/team/service/teamService";
 import {
   MemoSummary,
   CreateMemoReq,
@@ -18,7 +19,9 @@ import {
 } from "@/src/features/memo/types/memo";
 
 export default function MemoPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading } = useAuth();
+  const { teams: cachedTeams } = useTeam();
+  const queryClient = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedMemo, setSelectedMemo] = useState<MemoRes | null>(null);
@@ -26,71 +29,48 @@ export default function MemoPage() {
   const [filterPublic, setFilterPublic] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
-  // API 데이터
-  const [memos, setMemos] = useState<MemoSummary[]>([]);
-  const [totalElements, setTotalElements] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [teamId, setTeamId] = useState<number | null>(null);
   const [teams, setTeams] = useState<{ teamId: number; name: string }[]>([]);
   const pageSize = 10;
 
-  // 폼 데이터
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     sharedToTeam: true,
   });
 
-  // 팀 목록 불러오기
   useEffect(() => {
-    const fetchTeam = async () => {
-      if (!user) return;
+    setTeams(cachedTeams);
+    if (cachedTeams.length > 0 && teamId === null) {
+      setTeamId(cachedTeams[0].teamId);
+      setFilterTeam(cachedTeams[0].teamId.toString());
+    }
+  }, [cachedTeams, teamId]);
 
-      try {
-        const response = await teamService.getTeam();
-        if (response.success && response.data.length > 0) {
-          setTeams(response.data);
-          setTeamId(response.data[0].teamId); // 첫 번째 팀 사용
-          setFilterTeam(response.data[0].teamId.toString());
-        }
-      } catch (error) {
-        console.error("Failed to fetch team:", error);
+  const { data: memoList, isLoading } = useQuery({
+    queryKey: ["memos", teamId, currentPage],
+    queryFn: async () => {
+      if (teamId === null) {
+        return { items: [] as MemoSummary[], totalElements: 0 };
       }
-    };
-
-    fetchTeam();
-  }, [user]);
-
-  // 메모 목록 불러오기
-  const fetchMemos = useCallback(async () => {
-    if (!user || teamId === null) return;
-
-    setIsLoading(true);
-    try {
       const response = await memoService.getMemoList(
         teamId,
         currentPage,
         pageSize,
       );
-
-      if (response.success) {
-        setMemos(response.data.items);
-        setTotalElements(response.data.totalElements);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to fetch memos");
       }
-    } catch (error) {
-      console.error("Failed to fetch memos:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, teamId, currentPage]);
+      return response.data;
+    },
+    enabled: !authLoading && teamId !== null,
+  });
 
-  useEffect(() => {
-    fetchMemos();
-  }, [fetchMemos]);
+  const memos = memoList?.items ?? [];
+  const totalElements = memoList?.totalElements ?? 0;
 
-  // 검색 디바운싱 (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -99,7 +79,6 @@ export default function MemoPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // 필터링된 메모 (useMemo로 최적화)
   const filteredMemos = useMemo(() => {
     return memos.filter((memo) => {
       const matchesPublic =
@@ -149,13 +128,12 @@ export default function MemoPage() {
           content: "",
           sharedToTeam: true,
         });
-        fetchMemos();
+        await queryClient.invalidateQueries({ queryKey: ["memos"] });
       }
-    } catch (error) {
-      console.error("Failed to create memo:", error);
+    } catch {
       alert("메모 생성에 실패했습니다.");
     }
-  }, [formData, teamId, fetchMemos]);
+  }, [formData, teamId, queryClient]);
 
   const handleViewMemo = useCallback(async (memo: MemoSummary) => {
     try {
@@ -164,9 +142,7 @@ export default function MemoPage() {
         setSelectedMemo(response.data);
         setShowDetailModal(true);
       }
-    } catch (error) {
-      console.error("Failed to fetch memo detail:", error);
-    }
+    } catch {}
   }, []);
 
   const handleEditMemo = useCallback((memo: MemoRes) => {
@@ -200,13 +176,12 @@ export default function MemoPage() {
           content: "",
           sharedToTeam: true,
         });
-        fetchMemos();
+        await queryClient.invalidateQueries({ queryKey: ["memos"] });
       }
-    } catch (error) {
-      console.error("Failed to update memo:", error);
+    } catch {
       alert("메모 수정에 실패했습니다.");
     }
-  }, [formData, selectedMemo, fetchMemos]);
+  }, [formData, selectedMemo, queryClient]);
 
   const handleDeleteMemo = useCallback(
     async (memoId: number) => {
@@ -215,14 +190,12 @@ export default function MemoPage() {
       try {
         const response = await memoService.deleteMemo(memoId);
         if (response.success) {
-          fetchMemos(); // 목록 새로고침
+          await queryClient.invalidateQueries({ queryKey: ["memos"] });
           setShowDetailModal(false);
         }
-      } catch (error) {
-        console.error("Failed to delete memo:", error);
-      }
+      } catch {}
     },
-    [fetchMemos],
+    [queryClient],
   );
 
   if (authLoading) {
@@ -240,7 +213,6 @@ export default function MemoPage() {
     <div className="min-h-screen bg-gray-50">
       <Header currentPage="memo" />
 
-      {/* Page Header */}
       <section className="max-w-7xl mx-auto px-6 pt-8 pb-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -260,14 +232,12 @@ export default function MemoPage() {
           </button>
         </div>
 
-        {/* Stats */}
         <MemoStats
           totalElements={totalElements}
           memos={memos}
           currentPage={currentPage}
         />
 
-        {/* Filter and Search */}
         <div className="bg-white rounded-xl p-4 border border-gray-200 mb-6">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 flex-1 min-w-[300px]">
@@ -307,7 +277,6 @@ export default function MemoPage() {
         </div>
       </section>
 
-      {/* Memo List */}
       <section className="max-w-7xl mx-auto px-6 pb-12">
         {isLoading ? (
           <div className="text-center py-12">
@@ -329,7 +298,6 @@ export default function MemoPage() {
               </div>
             )}
 
-            {/* Pagination */}
             {totalElements > pageSize && (
               <div className="flex justify-center gap-2 mt-6">
                 <button
@@ -364,7 +332,6 @@ export default function MemoPage() {
         )}
       </section>
 
-      {/* Create/Edit Modal */}
       <MemoCreateModal
         show={showCreateModal}
         formData={formData}
@@ -381,7 +348,6 @@ export default function MemoPage() {
         onTeamChange={setTeamId}
       />
 
-      {/* Detail Modal */}
       <MemoDetailModal
         show={showDetailModal}
         memo={selectedMemo}

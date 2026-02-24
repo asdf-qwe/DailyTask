@@ -8,26 +8,26 @@ export interface CreateTeamTodoRes {
   id: number;
   title: string;
   teamId: number;
-  dueDate: string; // ISO 8601 date format
+  dueDate: string;
   todoStatus: TodoStatus;
 }
 
 export interface CreateTodoReq {
   title: string;
-  dueDate: string; // ISO 8601 date format
+  dueDate: string;
 }
 
 export interface CreateTodoRes {
   id: number;
   title: string;
-  dueDate: string; // ISO 8601 date format
+  dueDate: string;
   todoStatus: TodoStatus;
 }
 
 export interface TodoSummary {
   id: number;
   title: string;
-  dueDate: string; // ISO 8601 date format
+  dueDate: string;
   todoStatus: TodoStatus;
 }
 
@@ -39,17 +39,17 @@ export interface TodoListRes {
 }
 
 export interface TodoSearchCond {
-  date?: string; // ISO 8601 date format
+  date?: string;
   status?: TodoStatus;
 }
 
 export interface UpdateTodoReq {
   title: string;
-  date: string; // ISO 8601 date format
+  date: string;
   status: TodoStatus;
 }
 
 export interface UpdateTodoRes {
   id: number;
-  updatedAt: string; // ISO 8601 datetime format
+  updatedAt: string;
 }

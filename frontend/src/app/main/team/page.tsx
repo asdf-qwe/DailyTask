@@ -27,6 +27,7 @@ import CreateTeamModal from "@/src/component/team/CreateTeamModal";
 import JoinTeamModal from "@/src/component/team/JoinTeamModal";
 import LeaveTeamModal from "@/src/component/team/LeaveTeamModal";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { useTeam } from "@/src/features/team/context/TeamContext";
 import { teamService } from "@/src/features/team/service/teamService";
 import {
   TeamMemberListRes,
@@ -46,6 +47,7 @@ interface Team {
 
 export default function TeamPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { teams: cachedTeams, refreshTeams } = useTeam();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -63,38 +65,38 @@ export default function TeamPage() {
   const [newTeam, setNewTeam] = useState({ name: "", description: "" });
   const [editTeam, setEditTeam] = useState({ name: "", description: "" });
 
-  // 팀 목록 불러오기
+  const mappedTeams = useMemo<Team[]>(
+    () =>
+      cachedTeams.map((team) => ({
+        id: team.teamId,
+        name: team.name,
+        description: "",
+        memberCount: team.memberCount ?? 0,
+        createdAt: "",
+        role: Role.MEMBER,
+      })),
+    [cachedTeams],
+  );
+
   useEffect(() => {
-    const fetchTeams = async () => {
-      if (!user) return;
+    if (!user) {
+      setTeams([]);
+      setSelectedTeam(null);
+      return;
+    }
 
-      try {
-        const response = await teamService.getTeam();
-        console.log("팀 목록 API 응답:", response);
-        if (response.success) {
-          // GetTeamRes를 Team 형식으로 변환 (이제 memberCount가 포함됨)
-          const convertedTeams: Team[] = response.data.map((team) => ({
-            id: team.teamId,
-            name: team.name,
-            description: "",
-            memberCount: team.memberCount ?? 0, // 백엔드에서 받아온 값 사용 (undefined면 0)
-            createdAt: "",
-            role: Role.MEMBER,
-          }));
-          setTeams(convertedTeams);
-          if (convertedTeams.length > 0 && !selectedTeam) {
-            setSelectedTeam(convertedTeams[0]);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch teams:", error);
-      }
-    };
+    setTeams(mappedTeams);
+    setSelectedTeam((prev) => {
+      if (mappedTeams.length === 0) return null;
+      if (!prev) return mappedTeams[0];
 
-    fetchTeams();
-  }, [user]);
+      const matched = mappedTeams.find((team) => team.id === prev.id);
+      if (!matched) return mappedTeams[0];
 
-  // 선택된 팀의 멤버 목록 불러오기
+      return { ...matched, role: prev.role };
+    });
+  }, [user, mappedTeams]);
+
   useEffect(() => {
     const fetchTeamMembers = async () => {
       if (!selectedTeam) return;
@@ -105,7 +107,6 @@ export default function TeamPage() {
         if (response.success) {
           setTeamMembers(response.data);
 
-          // 현재 유저의 팀 내 역할 업데이트
           if (user) {
             const myMember = response.data.find((m) => m.userId === user.id);
             if (myMember && selectedTeam) {
@@ -115,8 +116,7 @@ export default function TeamPage() {
             }
           }
         }
-      } catch (error) {
-        console.error("Failed to fetch team members:", error);
+      } catch {
       } finally {
         setIsLoading(false);
       }
@@ -125,7 +125,6 @@ export default function TeamPage() {
     fetchTeamMembers();
   }, [selectedTeam]);
 
-  // 검색 필터링 (useMemo로 최적화)
   const filteredMembers = useMemo(() => {
     return teamMembers.filter(
       (member) =>
@@ -134,7 +133,6 @@ export default function TeamPage() {
     );
   }, [teamMembers, searchQuery]);
 
-  // 통계 계산 (useMemo로 최적화)
   const stats = useMemo(() => {
     return {
       totalTeams: teams.length,
@@ -156,32 +154,24 @@ export default function TeamPage() {
         alert("팀이 생성되었습니다.");
         setNewTeam({ name: "", description: "" });
         setShowCreateModal(false);
-
-        // 팀 목록 새로고침
-        const teamsResponse = await teamService.getTeam();
-        if (teamsResponse.success) {
-          const convertedTeams: Team[] = teamsResponse.data.map((team) => ({
-            id: team.teamId,
-            name: team.name,
-            description: "",
-            memberCount: team.memberCount ?? 0, // 백엔드에서 받아온 값 사용 (undefined면 0)
-            createdAt: "",
-            role: Role.MEMBER,
-          }));
-          setTeams(convertedTeams);
-          const newCreatedTeam = convertedTeams.find(
-            (t) => t.id === response.data.id,
-          );
-          if (newCreatedTeam) {
-            setSelectedTeam(newCreatedTeam);
-          }
-        }
+        setSelectedTeam((prev) =>
+          prev && prev.id === response.data.id
+            ? prev
+            : {
+                id: response.data.id,
+                name: response.data.name,
+                description: response.data.description ?? "",
+                memberCount: 1,
+                createdAt: response.data.createdAt,
+                role: Role.OWNER,
+              },
+        );
+        await refreshTeams();
       }
-    } catch (error) {
-      console.error("Failed to create team:", error);
+    } catch {
       alert("팀 생성에 실패했습니다.");
     }
-  }, [newTeam]);
+  }, [newTeam, refreshTeams]);
 
   const handleGenerateInviteCode = useCallback(async () => {
     if (!selectedTeam) return;
@@ -194,8 +184,7 @@ export default function TeamPage() {
         setInviteCode(response.data.inviteCode);
         setShowInviteModal(true);
       }
-    } catch (error) {
-      console.error("Failed to create invite code:", error);
+    } catch {
       alert("초대 코드 생성에 실패했습니다.");
     }
   }, [selectedTeam]);
@@ -212,26 +201,12 @@ export default function TeamPage() {
         alert("팀에 가입했습니다.");
         setShowJoinModal(false);
         setJoinCode("");
-
-        // 팀 목록 새로고침
-        const teamsResponse = await teamService.getTeam();
-        if (teamsResponse.success) {
-          const convertedTeams: Team[] = teamsResponse.data.map((team) => ({
-            id: team.teamId,
-            name: team.name,
-            description: "",
-            memberCount: team.memberCount ?? 0,
-            createdAt: "",
-            role: Role.MEMBER,
-          }));
-          setTeams(convertedTeams);
-        }
+        await refreshTeams();
       }
-    } catch (error) {
-      console.error("Failed to join team:", error);
+    } catch {
       alert("팀 가입에 실패했습니다. 초대 코드를 확인해주세요.");
     }
-  }, [joinCode]);
+  }, [joinCode, refreshTeams]);
 
   const handleLeaveTeam = useCallback(async () => {
     if (!selectedTeam) return;
@@ -242,26 +217,12 @@ export default function TeamPage() {
         alert("팀에서 나갔습니다.");
         setShowLeaveModal(false);
         setSelectedTeam(null);
-
-        // 팀 목록 새로고침
-        const teamsResponse = await teamService.getTeam();
-        if (teamsResponse.success) {
-          const convertedTeams: Team[] = teamsResponse.data.map((team) => ({
-            id: team.teamId,
-            name: team.name,
-            description: "",
-            memberCount: team.memberCount ?? 0,
-            createdAt: "",
-            role: Role.MEMBER,
-          }));
-          setTeams(convertedTeams);
-        }
+        await refreshTeams();
       }
-    } catch (error) {
-      console.error("Failed to leave team:", error);
+    } catch {
       alert("팀 나가기에 실패했습니다.");
     }
-  }, [selectedTeam]);
+  }, [selectedTeam, refreshTeams]);
 
   const handleDeleteTeam = useCallback(async () => {
     if (!selectedTeam) return;
@@ -272,26 +233,12 @@ export default function TeamPage() {
         alert("팀이 삭제되었습니다.");
         setShowDeleteModal(false);
         setSelectedTeam(null);
-
-        // 팀 목록 새로고침
-        const teamsResponse = await teamService.getTeam();
-        if (teamsResponse.success) {
-          const convertedTeams: Team[] = teamsResponse.data.map((team) => ({
-            id: team.teamId,
-            name: team.name,
-            description: "",
-            memberCount: team.memberCount ?? 0,
-            createdAt: "",
-            role: Role.MEMBER,
-          }));
-          setTeams(convertedTeams);
-        }
+        await refreshTeams();
       }
-    } catch (error) {
-      console.error("Failed to delete team:", error);
+    } catch {
       alert("팀 삭제에 실패했습니다.");
     }
-  }, [selectedTeam]);
+  }, [selectedTeam, refreshTeams]);
 
   const handleRemoveMember = useCallback(
     async (memberId: number) => {
@@ -307,8 +254,7 @@ export default function TeamPage() {
           setTeamMembers(teamMembers.filter((m) => m.memberId !== memberId));
           alert("멤버가 제거되었습니다.");
         }
-      } catch (error) {
-        console.error("Failed to remove member:", error);
+      } catch {
         alert("멤버 제거에 실패했습니다.");
       }
     },
@@ -332,28 +278,21 @@ export default function TeamPage() {
       if (response.success) {
         alert("팀 정보가 수정되었습니다.");
         setShowEditModal(false);
-
-        // 팀 목록 새로고침
-        const teamsResponse = await teamService.getTeam();
-        if (teamsResponse.success) {
-          const convertedTeams: Team[] = teamsResponse.data.map((team) => ({
-            id: team.teamId,
-            name: team.name,
-            description: "",
-            memberCount: team.memberCount ?? 0,
-            createdAt: "",
-            role: Role.MEMBER,
-          }));
-          setTeams(convertedTeams);
-          const updated = convertedTeams.find((t) => t.id === selectedTeam.id);
-          if (updated) setSelectedTeam(updated);
-        }
+        setSelectedTeam((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: editTeam.name,
+                description: editTeam.description,
+              }
+            : prev,
+        );
+        await refreshTeams();
       }
-    } catch (error) {
-      console.error("Failed to update team:", error);
+    } catch {
       alert("팀 정보 수정에 실패했습니다.");
     }
-  }, [selectedTeam, editTeam]);
+  }, [selectedTeam, editTeam, refreshTeams]);
 
   const getRoleBadge = useCallback((role: Role) => {
     switch (role) {

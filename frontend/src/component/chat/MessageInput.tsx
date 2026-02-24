@@ -15,7 +15,7 @@ const MessageInput = memo(function MessageInput({
   onKeyPress,
 }: MessageInputProps) {
   return (
-    <div className="p-4 border-t border-gray-200">
+    <div className="p-4 border-t border-gray-200 shrink-0 sticky bottom-0 bg-white z-10">
       <div className="flex items-end gap-2">
         <button className="p-2 hover:bg-gray-100 rounded-lg mb-1">
           <Paperclip className="w-5 h-5 text-gray-600" />
