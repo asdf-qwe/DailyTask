@@ -71,7 +71,8 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
             select new com.project4.DailyTask.domain.team.dto.GetTeamRes(
             t.id,
             t.name,
-            cast(count(m) as int)
+            cast(count(m) as int),
+            tm.role
             )
             from TeamMember tm
             join tm.team t
@@ -79,7 +80,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
             where tm.user.id = :userId
             and tm.teamStatus = com.project4.DailyTask.domain.team.entity.TeamStatus.JOINED
             and t.deletedAt is null
-            group by t.id, t.name
+            group by t.id, t.name, tm.role
             """)
     List<GetTeamRes> findMyTeamsWithJoinedCount(@Param("userId") Long userId);
 

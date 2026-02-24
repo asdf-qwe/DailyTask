@@ -59,4 +59,5 @@ export interface GetTeamRes {
   teamId: number;
   name: string;
   memberCount: number;
+  role: Role;
 }

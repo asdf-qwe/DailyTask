@@ -10,11 +10,13 @@ import {
 } from "react";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { teamService } from "@/src/features/team/service/teamService";
+import { Role } from "@/src/features/team/types/team";
 
 export interface TeamSummary {
   teamId: number;
   name: string;
   memberCount: number;
+  role: Role;
 }
 
 interface TeamContextValue {
@@ -45,6 +47,7 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
             teamId: team.teamId,
             name: team.name,
             memberCount: team.memberCount ?? 0,
+            role: team.role,
           })),
         );
       }

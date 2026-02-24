@@ -67,14 +67,16 @@ export default function TeamPage() {
 
   const mappedTeams = useMemo<Team[]>(
     () =>
-      cachedTeams.map((team) => ({
-        id: team.teamId,
-        name: team.name,
-        description: "",
-        memberCount: team.memberCount ?? 0,
-        createdAt: "",
-        role: Role.MEMBER,
-      })),
+      cachedTeams.map((team) => {
+        return {
+          id: team.teamId,
+          name: team.name,
+          description: "",
+          memberCount: team.memberCount ?? 0,
+          createdAt: "",
+          role: team.role,
+        };
+      }),
     [cachedTeams],
   );
 
@@ -93,25 +95,29 @@ export default function TeamPage() {
       const matched = mappedTeams.find((team) => team.id === prev.id);
       if (!matched) return mappedTeams[0];
 
-      return { ...matched, role: prev.role };
+      return matched;
     });
   }, [user, mappedTeams]);
 
   useEffect(() => {
+    const teamId = selectedTeam?.id;
+
     const fetchTeamMembers = async () => {
-      if (!selectedTeam) return;
+      if (!teamId) return;
 
       setIsLoading(true);
       try {
-        const response = await teamService.getTeamMembers(selectedTeam.id);
+        const response = await teamService.getTeamMembers(teamId);
         if (response.success) {
           setTeamMembers(response.data);
 
           if (user) {
             const myMember = response.data.find((m) => m.userId === user.id);
-            if (myMember && selectedTeam) {
+            if (myMember) {
               setSelectedTeam((prev) =>
-                prev ? { ...prev, role: myMember.role } : prev,
+                prev && prev.role !== myMember.role
+                  ? { ...prev, role: myMember.role }
+                  : prev,
               );
             }
           }
@@ -123,7 +129,7 @@ export default function TeamPage() {
     };
 
     fetchTeamMembers();
-  }, [selectedTeam]);
+  }, [selectedTeam?.id, user?.id]);
 
   const filteredMembers = useMemo(() => {
     return teamMembers.filter(
@@ -270,6 +276,10 @@ export default function TeamPage() {
     setShowEditModal(true);
   }, [selectedTeam]);
 
+  const handleSelectTeam = useCallback((team: Team) => {
+    setSelectedTeam((prev) => (prev?.id === team.id ? prev : team));
+  }, []);
+
   const handleUpdateTeam = useCallback(async () => {
     if (!selectedTeam || !editTeam.name.trim()) return;
 
@@ -369,7 +379,7 @@ export default function TeamPage() {
             <TeamList
               teams={teams}
               selectedTeam={selectedTeam}
-              onSelectTeam={setSelectedTeam}
+              onSelectTeam={handleSelectTeam}
             />
           </div>
 
