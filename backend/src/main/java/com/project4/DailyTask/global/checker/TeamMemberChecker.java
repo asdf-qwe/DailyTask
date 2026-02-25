@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -51,5 +53,9 @@ public class TeamMemberChecker {
         if (!isOwner) {
             throw new ApiException(ErrorCode.ONLY_OWNER_CAN_DELETE);
         }
+    }
+
+    public List<Long> findMyTeamIds(Long userId){
+        return teamMemberRepository.findMyTeamIdsByStatus(userId, TeamStatus.JOINED);
     }
 }

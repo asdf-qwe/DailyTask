@@ -1,10 +1,10 @@
 import React, { memo } from "react";
 import Link from "next/link";
 import { FileText } from "lucide-react";
-import { MemoSummary } from "@/src/features/memo/types/memo";
+import { RecentMemoRes } from "@/src/features/memo/types/memo";
 
 interface RecentMemosProps {
-  memos: MemoSummary[];
+  memos: RecentMemoRes[];
 }
 
 const RecentMemos = memo(function RecentMemos({ memos }: RecentMemosProps) {

@@ -7,6 +7,7 @@ import com.project4.DailyTask.domain.memo.repository.MemoRepository;
 import com.project4.DailyTask.domain.team.entity.Role;
 import com.project4.DailyTask.domain.team.entity.TeamMember;
 import com.project4.DailyTask.domain.team.repository.TeamMemberRepository;
+import com.project4.DailyTask.domain.todo.dto.TodoSummary;
 import com.project4.DailyTask.domain.user.repository.UserRepository;
 import com.project4.DailyTask.global.checker.TeamMemberChecker;
 import com.project4.DailyTask.global.exception.ApiException;
@@ -14,10 +15,12 @@ import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -142,5 +145,12 @@ public class ApiV1MemoService {
                 .orElseThrow(() -> new ApiException(ErrorCode.MEMO_NOT_FOUND));
     }
 
+    public List<RecentMemoRes> getMemosByCreatedDesc(SecurityUser user){
+        List<Long> teamIds = teamMemberChecker.findMyTeamIds(user.getId());
+        if (teamIds.isEmpty()) return List.of();
+
+        return memoRepository.findRecentMemos(
+                teamIds, PageRequest.of(0,3));
+    }
 }
 

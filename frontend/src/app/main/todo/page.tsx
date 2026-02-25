@@ -10,6 +10,7 @@ import TodoCreateModal from "@/src/component/todo/TodoCreateModal";
 import TodoEditModal from "@/src/component/todo/TodoEditModal";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { useTeam } from "@/src/features/team/context/TeamContext";
+import { Role } from "@/src/features/team/types/team";
 import { todoService } from "@/src/features/todo/service/todoService";
 import {
   TodoSummary,
@@ -32,7 +33,9 @@ export default function TodoPage() {
   const [page, setPage] = useState(0);
 
   const [viewMode, setViewMode] = useState<"personal" | "team">("personal");
-  const [teams, setTeams] = useState<{ teamId: number; name: string }[]>([]);
+  const [teams, setTeams] = useState<
+    { teamId: number; name: string; role: Role }[]
+  >([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
@@ -52,6 +55,15 @@ export default function TodoPage() {
       setSelectedTeamId(cachedTeams[0].teamId);
     }
   }, [cachedTeams, selectedTeamId]);
+
+  const isTeamOwner = useMemo(() => {
+    if (viewMode !== "team") return true;
+    if (selectedTeamId === null) return false;
+
+    return (
+      teams.find((team) => team.teamId === selectedTeamId)?.role === Role.OWNER
+    );
+  }, [viewMode, selectedTeamId, teams]);
 
   const { data: todoPage, isLoading } = useQuery({
     queryKey: ["todos", viewMode, selectedTeamId, page, filterStatus],
@@ -135,6 +147,11 @@ export default function TodoPage() {
 
   const handleStatusChange = useCallback(
     async (todoId: number, newStatus: TodoStatus) => {
+      if (viewMode === "team" && !isTeamOwner) {
+        alert("팀 Todo는 오너만 상태를 변경할 수 있습니다.");
+        return;
+      }
+
       try {
         const todo = todos.find((t) => t.id === todoId);
         if (!todo) return;
@@ -151,11 +168,16 @@ export default function TodoPage() {
         alert("상태 변경에 실패했습니다.");
       }
     },
-    [todos, queryClient],
+    [todos, queryClient, viewMode, isTeamOwner],
   );
 
   const handleDeleteTodo = useCallback(
     async (todoId: number) => {
+      if (viewMode === "team" && !isTeamOwner) {
+        alert("팀 Todo는 오너만 삭제할 수 있습니다.");
+        return;
+      }
+
       if (!confirm("정말 삭제하시겠습니까?")) return;
 
       try {
@@ -165,21 +187,34 @@ export default function TodoPage() {
         alert("삭제에 실패했습니다.");
       }
     },
-    [queryClient],
+    [queryClient, viewMode, isTeamOwner],
   );
 
-  const handleEditTodo = useCallback((todo: TodoSummary) => {
-    setSelectedTodo(todo);
-    setEditFormData({
-      title: todo.title,
-      date: todo.dueDate,
-      status: todo.todoStatus,
-    });
-    setShowEditModal(true);
-  }, []);
+  const handleEditTodo = useCallback(
+    (todo: TodoSummary) => {
+      if (viewMode === "team" && !isTeamOwner) {
+        alert("팀 Todo는 오너만 수정할 수 있습니다.");
+        return;
+      }
+
+      setSelectedTodo(todo);
+      setEditFormData({
+        title: todo.title,
+        date: todo.dueDate,
+        status: todo.todoStatus,
+      });
+      setShowEditModal(true);
+    },
+    [viewMode, isTeamOwner],
+  );
 
   const handleUpdateTodo = useCallback(async () => {
     if (!selectedTodo) return;
+
+    if (viewMode === "team" && !isTeamOwner) {
+      alert("팀 Todo는 오너만 수정할 수 있습니다.");
+      return;
+    }
 
     try {
       const req: UpdateTodoReq = {
@@ -195,7 +230,7 @@ export default function TodoPage() {
     } catch {
       alert("수정에 실패했습니다.");
     }
-  }, [selectedTodo, editFormData, queryClient]);
+  }, [selectedTodo, editFormData, queryClient, viewMode, isTeamOwner]);
 
   const getStatusColor = (status: TodoStatus) => {
     switch (status) {
@@ -373,6 +408,7 @@ export default function TodoPage() {
                 onStatusChange={handleStatusChange}
                 onEdit={handleEditTodo}
                 onDelete={handleDeleteTodo}
+                canManage={viewMode === "personal" || isTeamOwner}
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
                 getDueDateStatus={getDueDateStatus}

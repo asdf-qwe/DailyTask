@@ -16,10 +16,13 @@ import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -117,6 +120,7 @@ public class ApiV1TodoService {
         return new UpdateTodoRes(todo.getId(), todo.getUpdatedAt());
     }
 
+
     private void validateTodoUpdateAuthority(Todo todo, Long userId) {
 
         if (todo.isOwner(userId)) return;
@@ -155,5 +159,20 @@ public class ApiV1TodoService {
         if (!teamMember.isOwner()) {
             throw new ApiException(ErrorCode.TODO_DELETE_FORBIDDEN);
         }
+    }
+
+    public List<TodoSummary> getTodoByDueDate(SecurityUser user){
+           return todoRepository.findByTodosOrderByDueDateAsc(user.getId(),
+                   LocalDate.now(),
+                   PageRequest.of(0,5)
+           );
+    }
+
+    public List<TodoSummary> getTeamTodoByDueDate(SecurityUser user){
+        List<Long> teamIds = teamMemberChecker.findMyTeamIds(user.getId());
+        if (teamIds.isEmpty()) return List.of();
+
+        return todoRepository.findByTeamTodosOrderByDueDateAsc(
+                teamIds, LocalDate.now(), PageRequest.of(0,5));
     }
 }

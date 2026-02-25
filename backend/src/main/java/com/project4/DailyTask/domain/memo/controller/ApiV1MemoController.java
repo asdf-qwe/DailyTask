@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -71,4 +73,8 @@ public class ApiV1MemoController {
         return ResponseEntity.ok(ApiResponse.ok(true));
     }
 
+    @GetMapping("/memos/recent")
+    public ResponseEntity<ApiResponse<List<RecentMemoRes>>> getRecentMemos(@AuthenticationPrincipal SecurityUser user){
+        return ResponseEntity.ok(ApiResponse.ok(memoService.getMemosByCreatedDesc(user)));
+    }
 }

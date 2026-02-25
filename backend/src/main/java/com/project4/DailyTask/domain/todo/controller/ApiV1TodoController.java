@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
@@ -75,5 +77,13 @@ public class ApiV1TodoController {
         return ResponseEntity.ok(ApiResponse.ok(true));
     }
 
+    @GetMapping("/todos/upcoming")
+    public ResponseEntity<ApiResponse<List<TodoSummary>>> getUpcomingTodo(@AuthenticationPrincipal SecurityUser user){
+        return ResponseEntity.ok(ApiResponse.ok(todoService.getTodoByDueDate(user)));
+    }
 
+    @GetMapping("/todos/team/upcoming")
+    public ResponseEntity<ApiResponse<List<TodoSummary>>> getUpcomingTeamTodo(@AuthenticationPrincipal SecurityUser user){
+        return ResponseEntity.ok(ApiResponse.ok(todoService.getTeamTodoByDueDate(user)));
+    }
 }

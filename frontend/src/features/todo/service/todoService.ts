@@ -4,6 +4,7 @@ import {
   CreateTodoRes,
   CreateTeamTodoRes,
   TodoListRes,
+  TodoSummary,
   TodoSearchCond,
   UpdateTodoReq,
   UpdateTodoRes,
@@ -65,6 +66,22 @@ export const todoService = {
     const response = await authApi.get(`/api/v1/teams/${teamId}/todos`, {
       params,
     });
+    return response.data.data;
+  },
+
+  /**
+   * 대시보드용 개인 다가오는 Todo 목록 조회
+   */
+  getUpcomingTodo: async (): Promise<TodoSummary[]> => {
+    const response = await authApi.get("/api/v1/todos/upcoming");
+    return response.data.data;
+  },
+
+  /**
+   * 대시보드용 팀 다가오는 Todo 목록 조회
+   */
+  getUpcomingTeamTodo: async (): Promise<TodoSummary[]> => {
+    const response = await authApi.get("/api/v1/todos/team/upcoming");
     return response.data.data;
   },
 

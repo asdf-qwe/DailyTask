@@ -7,6 +7,7 @@ interface TodoCardProps {
   onStatusChange: (id: number, status: TodoStatus) => void;
   onEdit: (todo: TodoSummary) => void;
   onDelete: (id: number) => void;
+  canManage: boolean;
   getStatusColor: (status: TodoStatus) => string;
   getStatusText: (status: TodoStatus) => string;
   getDueDateStatus: (dueDate: string) => {
@@ -22,6 +23,7 @@ const TodoCard = memo(
     onStatusChange,
     onEdit,
     onDelete,
+    canManage,
     getStatusColor,
     getStatusText,
     getDueDateStatus,
@@ -41,44 +43,74 @@ const TodoCard = memo(
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onEdit(todo)}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <Edit className="w-4 h-4 text-gray-600" />
-            </button>
-            <button
-              onClick={() => onDelete(todo.id)}
-              className="p-2 hover:bg-red-50 rounded-lg"
-            >
-              <Trash2 className="w-4 h-4 text-red-600" />
-            </button>
-          </div>
+          {canManage && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onEdit(todo)}
+                className="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <Edit className="w-4 h-4 text-gray-600" />
+              </button>
+              <button
+                onClick={() => onDelete(todo.id)}
+                className="p-2 rounded-lg hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 text-red-600" />
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <select
-            value={todo.todoStatus}
-            onChange={(e) =>
-              onStatusChange(todo.id, e.target.value as TodoStatus)
-            }
-            className={`px-3 py-1 rounded-lg text-sm font-medium cursor-pointer ${getStatusColor(
-              todo.todoStatus
-            )}`}
-          >
-            <option value={TodoStatus.TODO}>{getStatusText(TodoStatus.TODO)}</option>
-            <option value={TodoStatus.IN_PROGRESS}>
-              {getStatusText(TodoStatus.IN_PROGRESS)}
-            </option>
-            <option value={TodoStatus.DONE}>{getStatusText(TodoStatus.DONE)}</option>
-          </select>
-          {dueDateStatus.isOverdue && (
-            <Flag className="w-4 h-4 text-red-500" />
+          {canManage ? (
+            <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 p-1">
+              {[TodoStatus.TODO, TodoStatus.IN_PROGRESS, TodoStatus.DONE].map(
+                (status) => {
+                  const isActive = todo.todoStatus === status;
+
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => onStatusChange(todo.id, status)}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                        isActive
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-800"
+                      }`}
+                    >
+                      {getStatusText(status)}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 p-1">
+              {[TodoStatus.TODO, TodoStatus.IN_PROGRESS, TodoStatus.DONE].map(
+                (status) => {
+                  const isActive = todo.todoStatus === status;
+
+                  return (
+                    <span
+                      key={status}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium ${
+                        isActive
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {getStatusText(status)}
+                    </span>
+                  );
+                },
+              )}
+            </div>
           )}
+          {dueDateStatus.isOverdue && <Flag className="w-4 h-4 text-red-500" />}
         </div>
       </div>
     );
-  }
+  },
 );
 
 TodoCard.displayName = "TodoCard";

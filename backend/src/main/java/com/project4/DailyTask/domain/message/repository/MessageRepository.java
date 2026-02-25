@@ -12,11 +12,11 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("""
-select m from Message m
-left join fetch m.user
-where m.channel = :channel
-order by m.createdAt desc
-""")
+           select m from Message m
+           left join fetch m.user
+           where m.channel = :channel
+           order by m.createdAt desc
+           """)
     List<Message> findByChannelOrderByCreatedAtDesc(@Param("channel") Channel channel, Pageable pageable);
 
 
