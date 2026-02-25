@@ -200,7 +200,7 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
                   >
                     <Bell className="w-5 h-5 text-gray-600" />
                     {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-white text-xs px-1">
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] font-semibold px-1 border-2 border-white shadow-sm">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}

@@ -9,6 +9,7 @@ import com.project4.DailyTask.domain.team.entity.TeamStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.core.parameters.P;
 
 import java.util.List;
 import java.util.Optional;
@@ -111,5 +112,15 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
             and tm.user.id = :userId
             and t.deletedAt is null
             """)
-    Optional<TeamMember> findByTeamIdAndUserIdWithUserAndTeam(Long teamId, Long userId);
+    Optional<TeamMember> findByTeamIdAndUserIdWithUserAndTeam(@Param("teamId") Long teamId,
+                                                              @Param("userId") Long userId);
+
+    @Query("""
+            select tm.team.id
+            from TeamMember tm
+            where tm.user.id = :userId
+            and tm.teamStatus = :status
+            """)
+    List<Long> findMyTeamIdsByStatus(@Param("userId") Long userId,
+                                     @Param("status") TeamStatus status);
 }

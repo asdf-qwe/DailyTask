@@ -5,6 +5,7 @@ import {
   MemoListRes,
   MemoRes,
   MemoSearchCond,
+  RecentMemoRes,
   UpdateMemoReq,
   UpdateMemoRes,
 } from "../types/memo";
@@ -57,6 +58,16 @@ export const memoService = {
     const response = await authApi.get<ApiResponse<MemoListRes>>(
       `${API_PREFIX}/teams/${teamId}/memos`,
       { params },
+    );
+    return response.data;
+  },
+
+  /**
+   * 대시보드용 최근 메모 조회
+   */
+  getRecentMemos: async (): Promise<ApiResponse<RecentMemoRes[]>> => {
+    const response = await authApi.get<ApiResponse<RecentMemoRes[]>>(
+      `${API_PREFIX}/memos/recent`,
     );
     return response.data;
   },

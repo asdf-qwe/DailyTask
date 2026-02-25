@@ -27,6 +27,13 @@ export interface MemoSummary {
   createdAt: string;
 }
 
+export interface RecentMemoRes {
+  id: number;
+  title: string;
+  authorName: string;
+  createdAt: string;
+}
+
 export interface MemoListRes {
   items: MemoSummary[];
   page: number;

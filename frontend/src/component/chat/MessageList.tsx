@@ -78,15 +78,11 @@ const MessageList = memo(function MessageList({
     }
   }, [messages, currentUserId, isNearBottom, scrollToBottom]);
 
-  if (isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-gray-500">로딩 중...</p>
-      </div>
-    );
-  }
-
   if (messages.length === 0) {
+    if (isLoading) {
+      return <div className="h-full" />;
+    }
+
     return (
       <div className="h-full flex items-center justify-center">
         <p className="text-gray-500">메시지가 없습니다</p>

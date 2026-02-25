@@ -23,18 +23,23 @@ import TodayTodos from "@/src/component/main/TodayTodos";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { useTeam } from "@/src/features/team/context/TeamContext";
 import { memoService } from "@/src/features/memo/service/memoSercice";
-import { MemoSummary } from "@/src/features/memo/types/memo";
+import { RecentMemoRes } from "@/src/features/memo/types/memo";
 import { CreateTeamResponse } from "@/src/features/team/types/team";
 import { todoService } from "@/src/features/todo/service/todoService";
 import { TodoSummary, TodoStatus } from "@/src/features/todo/types/todo";
+import { notificationService } from "@/src/features/notification/service/notificationService";
 
 export default function Home() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { teams: cachedTeams } = useTeam();
-  const [recentMemos, setRecentMemos] = useState<MemoSummary[]>([]);
+  const [recentMemos, setRecentMemos] = useState<RecentMemoRes[]>([]);
   const [teams, setTeams] = useState<CreateTeamResponse[]>([]);
   const [teamId, setTeamId] = useState<number | null>(null);
-  const [todayTodos, setTodayTodos] = useState<TodoSummary[]>([]);
+  const [personalTodayTodos, setPersonalTodayTodos] = useState<TodoSummary[]>(
+    [],
+  );
+  const [teamTodayTodos, setTeamTodayTodos] = useState<TodoSummary[]>([]);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [todoStats, setTodoStats] = useState({
     total: 0,
     completed: 0,
@@ -64,45 +69,46 @@ export default function Home() {
 
   useEffect(() => {
     const fetchRecentMemos = async () => {
-      if (!isAuthenticated || teamId === null) return;
+      if (!isAuthenticated) return;
 
       try {
-        const response = await memoService.getMemoList(teamId, 0, 5);
+        const response = await memoService.getRecentMemos();
 
         if (response.success) {
-          setRecentMemos(response.data.items.slice(0, 3));
+          setRecentMemos(response.data);
         }
       } catch {}
     };
 
     fetchRecentMemos();
-  }, [isAuthenticated, teamId]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const fetchTodayTodos = async () => {
       if (!isAuthenticated) return;
 
       try {
-        const response = await todoService.getTodoList(0, 20);
+        const [personalTodos, teamTodos] = await Promise.all([
+          todoService.getUpcomingTodo(),
+          todoService.getUpcomingTeamTodo(),
+        ]);
 
-        const today = new Date().toISOString().split("T")[0];
-        const todayTodoList = response.content.filter(
-          (todo) => todo.dueDate.split("T")[0] === today,
-        );
+        setPersonalTodayTodos(personalTodos.slice(0, 5));
+        setTeamTodayTodos(teamTodos.slice(0, 5));
 
-        setTodayTodos(todayTodoList.slice(0, 5));
-
-        const total = todayTodoList.length;
-        const completed = todayTodoList.filter(
+        const allTodayTodos = [...personalTodos, ...teamTodos];
+        const total = allTodayTodos.length;
+        const completed = allTodayTodos.filter(
           (todo) => todo.todoStatus === TodoStatus.DONE,
         ).length;
-        const todo = todayTodoList.filter(
+        const todo = allTodayTodos.filter(
           (todo) => todo.todoStatus === TodoStatus.TODO,
         ).length;
 
         setTodoStats({ total, completed, todo });
       } catch {
-        setTodayTodos([]);
+        setPersonalTodayTodos([]);
+        setTeamTodayTodos([]);
         setTodoStats({ total: 0, completed: 0, todo: 0 });
       }
     };
@@ -110,16 +116,128 @@ export default function Home() {
     fetchTodayTodos();
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    const fetchUnreadMessagesCount = async () => {
+      if (!isAuthenticated) {
+        setUnreadMessagesCount(0);
+        return;
+      }
+
+      try {
+        const response = await notificationService.getNotifications(true);
+        if (response.success) {
+          setUnreadMessagesCount(response.data.length);
+        }
+      } catch {
+        setUnreadMessagesCount(0);
+      }
+    };
+
+    fetchUnreadMessagesCount();
+  }, [isAuthenticated]);
+
   const quickStatsData = useMemo(() => {
+    const personalTodosTotal = personalTodayTodos.length;
+    const personalTodosCompleted = personalTodayTodos.filter(
+      (todo) => todo.todoStatus === TodoStatus.DONE,
+    ).length;
+
     return {
       teamsCount: teams.length,
       teamsNames:
         teams.length > 0 ? teams.map((t) => t.name).join(", ") : "속한 팀 없음",
-      todosCount: todoStats.todo,
-      todosCompleted: todoStats.completed,
-      todosTotal: todoStats.total,
+      todosCount: todoStats.total,
+      personalTodosCompleted,
+      personalTodosTotal,
+      teamTodosCount: teamTodayTodos.length,
+      unreadMessagesCount,
     };
-  }, [teams, todoStats]);
+  }, [
+    teams,
+    todoStats.total,
+    personalTodayTodos,
+    teamTodayTodos.length,
+    unreadMessagesCount,
+  ]);
+
+  const handleToggleTodayTodoStatus = useCallback(
+    async (targetTodo: TodoSummary) => {
+      const isTeamTodo = teamTodayTodos.some(
+        (todo) => todo.id === targetTodo.id,
+      );
+
+      try {
+        const nextStatus =
+          targetTodo.todoStatus === TodoStatus.DONE
+            ? TodoStatus.TODO
+            : TodoStatus.DONE;
+        const normalizedDate = targetTodo.dueDate.split("T")[0];
+
+        await todoService.updateTodo(targetTodo.id, {
+          title: targetTodo.title,
+          date: normalizedDate,
+          status: nextStatus,
+        });
+
+        const nextPersonalTodos = personalTodayTodos.map((todo) =>
+          todo.id === targetTodo.id
+            ? { ...todo, todoStatus: nextStatus }
+            : todo,
+        );
+        const nextTeamTodos = teamTodayTodos.map((todo) =>
+          todo.id === targetTodo.id
+            ? { ...todo, todoStatus: nextStatus }
+            : todo,
+        );
+
+        setPersonalTodayTodos(nextPersonalTodos);
+        setTeamTodayTodos(nextTeamTodos);
+
+        const allTodayTodos = [...nextPersonalTodos, ...nextTeamTodos];
+        const total = allTodayTodos.length;
+        const completed = allTodayTodos.filter(
+          (todo) => todo.todoStatus === TodoStatus.DONE,
+        ).length;
+        const todo = allTodayTodos.filter(
+          (todo) => todo.todoStatus === TodoStatus.TODO,
+        ).length;
+
+        setTodoStats({ total, completed, todo });
+      } catch (error) {
+        const status =
+          typeof error === "object" &&
+          error !== null &&
+          "response" in error &&
+          typeof error.response === "object" &&
+          error.response !== null &&
+          "status" in error.response
+            ? Number(error.response.status)
+            : null;
+
+        const backendMessage =
+          typeof error === "object" &&
+          error !== null &&
+          "response" in error &&
+          typeof error.response === "object" &&
+          error.response !== null &&
+          "data" in error.response &&
+          typeof error.response.data === "object" &&
+          error.response.data !== null &&
+          "message" in error.response.data &&
+          typeof error.response.data.message === "string"
+            ? error.response.data.message
+            : null;
+
+        if (status === 403 && isTeamTodo) {
+          alert("팀 Todo는 팀장만 상태를 변경할 수 있습니다.");
+          return;
+        }
+
+        alert(backendMessage ?? "Todo 상태 변경에 실패했습니다.");
+      }
+    },
+    [personalTodayTodos, teamTodayTodos],
+  );
 
   if (isLoading) {
     return (
@@ -202,8 +320,10 @@ export default function Home() {
           teamsCount={quickStatsData.teamsCount}
           teamsNames={quickStatsData.teamsNames}
           todosCount={quickStatsData.todosCount}
-          todosCompleted={quickStatsData.todosCompleted}
-          todosTotal={quickStatsData.todosTotal}
+          personalTodosCompleted={quickStatsData.personalTodosCompleted}
+          personalTodosTotal={quickStatsData.personalTodosTotal}
+          teamTodosCount={quickStatsData.teamTodosCount}
+          unreadMessagesCount={quickStatsData.unreadMessagesCount}
         />
       </section>
 
@@ -211,7 +331,11 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           <TeamSummary teams={teams} />
           <RecentMemos memos={recentMemos} />
-          <TodayTodos todos={todayTodos} />
+          <TodayTodos
+            personalTodos={personalTodayTodos}
+            teamTodos={teamTodayTodos}
+            onToggleTodoStatus={handleToggleTodayTodoStatus}
+          />
         </div>
       </section>
       <footer className="bg-white border-t border-gray-200 mt-12">
