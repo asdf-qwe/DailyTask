@@ -26,7 +26,10 @@ import { memoService } from "@/src/features/memo/service/memoSercice";
 import { RecentMemoRes } from "@/src/features/memo/types/memo";
 import { CreateTeamResponse } from "@/src/features/team/types/team";
 import { todoService } from "@/src/features/todo/service/todoService";
-import { TodoSummary, TodoStatus } from "@/src/features/todo/types/todo";
+import {
+  TodoSummary,
+  TodoStatus,
+} from "@/src/features/todo/types/todo";
 import { notificationService } from "@/src/features/notification/service/notificationService";
 
 export default function Home() {

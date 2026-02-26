@@ -19,6 +19,7 @@ public interface TodoRepository extends JpaRepository<Todo, Long>, TodoRepositor
     @Query("""
             select new com.project4.DailyTask.domain.todo.dto.TodoSummary(
             t.id,
+            null,
             t.title,
             t.dueDate,
             t.todoStatus
@@ -35,14 +36,16 @@ public interface TodoRepository extends JpaRepository<Todo, Long>, TodoRepositor
     @Query("""
             select new com.project4.DailyTask.domain.todo.dto.TodoSummary(
             t.id,
+            tm.name,
             t.title,
             t.dueDate,
             t.todoStatus
             )
             from Todo t
-            where t.team.id in :teamIds
+            join t.team tm
+            where tm.id in :teamIds
                 and t.dueDate = :today
-            order by t.dueDate asc, t.id desc
+            order by t.id desc
             """)
     List<TodoSummary> findByTeamTodosOrderByDueDateAsc(
             @Param("teamIds") List<Long> teamIds,

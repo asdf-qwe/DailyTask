@@ -72,10 +72,21 @@ const TodoSection = ({
                 >
                   {todo.title}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {getDueDateLabel(todo.dueDate)} ·{" "}
-                  {new Date(todo.dueDate).toLocaleDateString()}
-                </div>
+                {title === "팀" ? (
+                  <div className="text-xs text-gray-500 mt-1">
+                    <span className="text-gray-600">
+                      {todo.name ? todo.name : "팀 정보 없음"}
+                    </span>
+                    <span className="text-gray-400"> · </span>
+                    {getDueDateLabel(todo.dueDate)} ·{" "}
+                    {new Date(todo.dueDate).toLocaleDateString()}
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {getDueDateLabel(todo.dueDate)} ·{" "}
+                    {new Date(todo.dueDate).toLocaleDateString()}
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mt-2">
                   <div
                     className={`inline-flex items-center rounded-lg p-1 ${
