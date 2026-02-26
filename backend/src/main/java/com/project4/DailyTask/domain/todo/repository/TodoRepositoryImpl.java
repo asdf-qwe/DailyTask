@@ -1,5 +1,8 @@
 package com.project4.DailyTask.domain.todo.repository;
 
+import com.project4.DailyTask.domain.team.entity.QTeam;
+import com.project4.DailyTask.domain.team.entity.Team;
+import com.project4.DailyTask.domain.team.repository.TeamRepository;
 import com.project4.DailyTask.domain.todo.dto.TodoSummary;
 import com.project4.DailyTask.domain.todo.entity.QTodo;
 import com.project4.DailyTask.domain.todo.entity.Todo;
@@ -27,6 +30,7 @@ import java.util.List;
 public class TodoRepositoryImpl implements TodoRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+    private final TeamRepository teamRepository;
 
     @Override
     public Page<TodoSummary> searchMyTodos(Long userId, LocalDate date, TodoStatus status, Pageable pageable) {
@@ -40,6 +44,7 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
 
     private Page<TodoSummary> searchTodosDto(Long userId, Long teamId, LocalDate date, TodoStatus status, Pageable pageable) {
         QTodo t = QTodo.todo;
+        QTeam tm = QTeam.team;
 
         BooleanBuilder where = new BooleanBuilder();
 
@@ -63,11 +68,13 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
                 .select(com.querydsl.core.types.Projections.constructor(
                         TodoSummary.class,
                         t.id,
+                        tm.name,
                         t.title,
                         t.dueDate,
                         t.todoStatus
                 ))
                 .from(t)
+                .leftJoin(t.team, tm)
                 .where(where)
                 .orderBy(toOrderSpecifiers(pageable, t))
                 .offset(pageable.getOffset())

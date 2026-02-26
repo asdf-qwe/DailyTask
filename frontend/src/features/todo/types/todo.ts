@@ -26,10 +26,12 @@ export interface CreateTodoRes {
 
 export interface TodoSummary {
   id: number;
+  name?: string;
   title: string;
   dueDate: string;
   todoStatus: TodoStatus;
 }
+
 
 export interface TodoListRes {
   content: TodoSummary[];

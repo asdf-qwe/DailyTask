@@ -35,13 +35,25 @@ const TodoCard = memo(
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 mb-2">{todo.title}</h3>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-gray-400" />
-              <span className={dueDateStatus.color}>
-                {new Date(todo.dueDate).toLocaleDateString()} -{" "}
-                {dueDateStatus.text}
-              </span>
-            </div>
+            {"name" in todo && todo.name ? (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="text-gray-600">{String(todo.name)}</span>
+                <span className="text-gray-400"> · </span>
+                <Clock className="w-4 h-4 text-gray-400" />
+                <span className={dueDateStatus.color}>
+                  {new Date(todo.dueDate).toLocaleDateString()} -{" "}
+                  {dueDateStatus.text}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="w-4 h-4 text-gray-400" />
+                <span className={dueDateStatus.color}>
+                  {new Date(todo.dueDate).toLocaleDateString()} -{" "}
+                  {dueDateStatus.text}
+                </span>
+              </div>
+            )}
           </div>
           {canManage && (
             <div className="flex items-center gap-2">
