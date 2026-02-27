@@ -265,7 +265,7 @@ export default function Home() {
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-3">DailyTask</h1>
             <p className="text-lg text-gray-600 mb-10">
-              효율적인 팀 협업과 업무 관리를 위한 그룹웨어
+              효율적인 팀 협업의 시작 업무 관리와 소통을 하나로.
             </p>
             <div className="flex items-center justify-center gap-3">
               <Link
