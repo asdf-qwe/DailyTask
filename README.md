@@ -46,19 +46,19 @@ Controller
 
 성능을 측정 가능한 구조로 설계했습니다.
 
-### 1️⃣ N+1 문제 재현 및 개선
+### 1. N+1 문제 재현 및 개선
 
 - 팀/메모 조회 시 N+1 상황 재현 API 구현
 - Hibernate Statistics로 쿼리 수 및 실행 시간 측정
 - Fetch Join 및 인덱스 적용 전/후 비교
 
-### 2️⃣ 요청 단위 성능 추적 시스템
+### 2. 요청 단위 성능 추적 시스템
 
 - TraceIdFilter를 통한 요청 단위 추적
 - MDC 기반 로그 상관관계 유지
 - 인증 실패 및 예외 상황에서도 로그 수집 가능
 
-### 3️⃣ TeamPerfService 구현
+### 3. TeamPerfService 구현
 
 - 팀 단위 데이터 조회 성능 측정
 - 요청별 DB 쿼리 수 확인 가능
@@ -82,7 +82,7 @@ Controller
 
 ## 5. 주요 기능
 
-### 1️⃣ 팀 협업 도메인
+### 1. 팀 협업 도메인
 
 - 팀 생성
 - 초대 코드 발급 및 만료 정책
@@ -91,21 +91,21 @@ Controller
 - 채널 생성
 - WebSocket 기반 실시간 메시지 송수신
 
-### 2️⃣ 메모 시스템
+### 2. 메모 시스템
 
 - 메모 CRUD
 - Visibility (팀/개인) 정책 적용
 - QueryDSL 기반 동적 검색
 - 조건 기반 페이징 처리
 
-### 3️⃣ Todo 시스템
+### 3. Todo 시스템
 
 - 개인/팀 Todo 생성
 - 상태 변경
 - 조건 검색 + 정렬 처리
 - QueryDSL 기반 동적 조회
 
-### 4️⃣ 알림 시스템
+### 4. 알림 시스템
 
 - 이벤트 기반 알림 생성
 - 읽음 처리
@@ -182,3 +182,7 @@ Repository 및 JPA 계층을 빠르게 검증하여 통합 테스트 비용을 �
 
 - Production URL: https://pofol.site  
 - API Base URL: https://api.pofol.site
+
+## 테스트 계정
+- id: testAc
+- password: demoUser1!
