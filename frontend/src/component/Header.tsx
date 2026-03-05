@@ -41,7 +41,7 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
 
     try {
       const response = await notificationService.getNotifications();
-      if (response.success) {
+      if (response.data) {
         setNotifications(response.data);
         setUnreadCount(response.data.filter((n) => !n.read).length);
       }
@@ -56,7 +56,7 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
     async (id: number) => {
       try {
         const response = await notificationService.markAsRead(id);
-        if (response.success) {
+        if (response.data) {
           fetchNotifications();
         }
       } catch (error: any) {

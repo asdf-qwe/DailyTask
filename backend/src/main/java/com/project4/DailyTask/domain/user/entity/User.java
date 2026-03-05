@@ -19,7 +19,6 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users")
-@SuperBuilder
 public class User extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 50)
@@ -51,15 +50,14 @@ public class User extends BaseEntity {
     private LocalDateTime deletedAt;
 
     public static User createNew(String loginId, String email, String encodedPw, String nickname) {
-        return User.builder()
-                .loginId(loginId)
-                .email(email)
-                .password(encodedPw)
-                .nickname(nickname)
-                .profileUrl("example")
-                .status(Status.ACTIVE)
-                .role(UserRole.USER)
-                .build();
+        User user = new User();
+        user.loginId = loginId;
+        user.email = email;
+        user.password = encodedPw;
+        user.profileUrl = "example";
+        user.status = Status.ACTIVE;
+        user.role = UserRole.USER;
+        return user;
     }
 
     public boolean isDeleted() {

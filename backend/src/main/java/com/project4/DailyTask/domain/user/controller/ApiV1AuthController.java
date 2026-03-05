@@ -62,7 +62,7 @@ public class ApiV1AuthController {
             @CookieValue(value = "refreshToken", required = false) String refreshToken
     ) {
         if (refreshToken == null || refreshToken.isBlank()) {
-            return ResponseEntity.status(401).body(ApiResponse.fail("토큰이 없습니다."));
+            throw new ApiException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
         }
 
         TokenResponseDto token = authService.refresh(refreshToken);

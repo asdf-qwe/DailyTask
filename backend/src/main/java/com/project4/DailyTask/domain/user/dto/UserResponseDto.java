@@ -8,30 +8,5 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-@Getter
-@AllArgsConstructor
-public class UserResponseDto {
 
-    private Long id;
-    private String email;
-    private String nickname;
-    private UserRole role;
-
-    public static UserResponseDto from(SecurityUser user) {
-        return new UserResponseDto(
-                user.getId(),
-                user.getEmail(),
-                user.getNickname(),
-                user.getRole()
-        );
-    }
-
-    public static UserResponseDto fromEntity(User user) {
-        return new UserResponseDto(
-                user.getId(),
-                user.getEmail(),
-                user.getNickname(),
-                user.getRole()
-        );
-    }
-}
+public record UserResponseDto (Long id, String email, String nickname, UserRole role){}

@@ -16,7 +16,6 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuperBuilder
 public class Channel extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

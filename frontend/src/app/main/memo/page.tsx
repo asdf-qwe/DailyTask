@@ -60,7 +60,7 @@ export default function MemoPage() {
         currentPage,
         pageSize,
       );
-      if (!response.success) {
+      if (!response.data) {
         throw new Error(response.message || "Failed to fetch memos");
       }
       return response.data;
@@ -121,7 +121,7 @@ export default function MemoPage() {
       };
 
       const response = await memoService.createMemo(teamId, req);
-      if (response.success) {
+      if (response.data) {
         setShowCreateModal(false);
         setFormData({
           title: "",
@@ -138,7 +138,7 @@ export default function MemoPage() {
   const handleViewMemo = useCallback(async (memo: MemoSummary) => {
     try {
       const response = await memoService.getMemo(memo.id);
-      if (response.success) {
+      if (response.data) {
         setSelectedMemo(response.data);
         setShowDetailModal(true);
       }
@@ -168,7 +168,7 @@ export default function MemoPage() {
       };
 
       const response = await memoService.updateMemo(selectedMemo.id, req);
-      if (response.success) {
+      if (response.data) {
         setShowCreateModal(false);
         setSelectedMemo(null);
         setFormData({
@@ -189,7 +189,7 @@ export default function MemoPage() {
 
       try {
         const response = await memoService.deleteMemo(memoId);
-        if (response.success) {
+        if (response.data) {
           await queryClient.invalidateQueries({ queryKey: ["memos"] });
           setShowDetailModal(false);
         }

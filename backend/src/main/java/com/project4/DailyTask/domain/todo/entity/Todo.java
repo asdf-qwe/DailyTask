@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuperBuilder
 public class Todo extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -58,8 +57,7 @@ public class Todo extends BaseEntity {
         if (dueDate != null) changeDueDate(dueDate);
         if (todoStatus != null) changeStatus(todoStatus);
     }
-
-    // 도메인 메서드: 최소 검증(최후 방어선)
+    
     public void changeTitle(String title) {
         String v = title.trim();
         if (v.isBlank()) {

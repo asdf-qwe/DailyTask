@@ -30,7 +30,6 @@ import java.util.List;
 public class TodoRepositoryImpl implements TodoRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
-    private final TeamRepository teamRepository;
 
     @Override
     public Page<TodoSummary> searchMyTodos(Long userId, LocalDate date, TodoStatus status, Pageable pageable) {
@@ -46,22 +45,8 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
         QTodo t = QTodo.todo;
         QTeam tm = QTeam.team;
 
-        BooleanBuilder where = new BooleanBuilder();
-
-        if (userId != null) {
-            where.and(t.user.id.eq(userId))
-                    .and(t.team.isNull());
-        } else if (teamId != null) {
-            where.and(t.team.id.eq(teamId));
-        } else {
-            throw new IllegalArgumentException("Either userId or teamId must be provided.");
-        }
-
-        if (status != null) {
-            where.and(t.todoStatus.eq(status));
-        }
-        if (date != null) {
-            where.and(t.dueDate.eq(date));
+        if (userId == null && teamId == null) {
+            throw new IllegalArgumentException("userId 또는 teamId 중 하나는 필수입니다.");
         }
 
         List<TodoSummary> content = queryFactory
@@ -75,7 +60,11 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
                 ))
                 .from(t)
                 .leftJoin(t.team, tm)
-                .where(where)
+                .where(
+                        scopeFilter(t, userId, teamId),
+                        statusEq(t, status),
+                        dueDateEq(t, date)
+                )
                 .orderBy(toOrderSpecifiers(pageable, t))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -84,10 +73,32 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
         Long total = queryFactory
                 .select(t.count())
                 .from(t)
-                .where(where)
+                .where(
+                        scopeFilter(t, userId, teamId),
+                        statusEq(t, status),
+                        dueDateEq(t, date)
+                )
                 .fetchOne();
 
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
+    }
+
+    private BooleanExpression scopeFilter(QTodo t, Long userId, Long teamId) {
+        if (userId != null) {
+            return t.user.id.eq(userId).and(t.team.isNull());
+        }
+        if (teamId != null) {
+            return t.team.id.eq(teamId);
+        }
+        return null;
+    }
+
+    private BooleanExpression statusEq(QTodo t, TodoStatus status) {
+        return status != null ? t.todoStatus.eq(status) : null;
+    }
+
+    private BooleanExpression dueDateEq(QTodo t, LocalDate date) {
+        return date != null ? t.dueDate.eq(date) : null;
     }
 
     private OrderSpecifier<?>[] toOrderSpecifiers(Pageable pageable, QTodo t) {
@@ -108,9 +119,6 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
             }
         }
 
-        if (orders.isEmpty()) {
-            return new OrderSpecifier[]{ t.id.desc() };
-        }
-        return orders.toArray(new OrderSpecifier[0]);
+        return orders.isEmpty() ? new OrderSpecifier[]{ t.id.desc() } : orders.toArray(new OrderSpecifier[0]);
     }
 }

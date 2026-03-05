@@ -18,12 +18,7 @@ const authApi = axios.create({
   },
 });
 
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  errorCode?: string;
-}
+import { ApiResponse, ErrorResponse } from "../../../types/api";
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -68,10 +63,7 @@ authApi.interceptors.response.use(
         const refreshResponse = await authApi.post<
           ApiResponse<TokenResponseDto>
         >(`${AUTH_PREFIX}/refresh`);
-        if (
-          refreshResponse.data.success &&
-          refreshResponse.data.data?.accessToken
-        ) {
+        if (refreshResponse.data.data?.accessToken) {
           tokenStore.setToken(refreshResponse.data.data.accessToken);
         }
 
@@ -147,7 +139,7 @@ export const authService = {
     const response = await authApi.post<ApiResponse<TokenResponseDto>>(
       `${AUTH_PREFIX}/refresh`,
     );
-    if (response.data.success && response.data.data?.accessToken) {
+    if (response.data.data?.accessToken) {
       tokenStore.setToken(response.data.data.accessToken);
     }
     return response.data;
@@ -214,7 +206,7 @@ export const tokenStore = {
       const response = await authApi.post<ApiResponse<TokenResponseDto>>(
         `${AUTH_PREFIX}/refresh`,
       );
-      if (response.data.success && response.data.data?.accessToken) {
+      if (response.data.data?.accessToken) {
         _accessToken = response.data.data.accessToken;
         return _accessToken;
       }

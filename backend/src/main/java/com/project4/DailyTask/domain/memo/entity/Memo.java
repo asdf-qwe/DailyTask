@@ -12,7 +12,6 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuperBuilder
 public class Memo extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -33,7 +32,7 @@ public class Memo extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Visibility visibility = Visibility.PRIVATE;
 
-    public void changeMemoTitle(String title){
+    public void changeTitle(String title){
         String t = title.trim();
         if (t.isBlank()) {
             throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
@@ -48,7 +47,7 @@ public class Memo extends BaseEntity {
         Memo memo = new Memo();
         memo.user = user;
         memo.team = team;
-        memo.changeMemoTitle(title);
+        memo.changeTitle(title);
         memo.content = content;
         memo.visibility = visibility;
         return memo;
@@ -57,10 +56,6 @@ public class Memo extends BaseEntity {
         if (title != null) changeTitle(title);
         if (content != null) changeContent(content);
         if (sharedToTeam != null) changeVisibility(sharedToTeam ? Visibility.TEAM : Visibility.PRIVATE);
-    }
-
-    public void changeTitle(String title) {
-        this.title = title;
     }
 
     public void changeContent(String content) {

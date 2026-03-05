@@ -108,7 +108,7 @@ export default function TeamPage() {
       setIsLoading(true);
       try {
         const response = await teamService.getTeamMembers(teamId);
-        if (response.success) {
+        if (response.data) {
           setTeamMembers(response.data);
 
           if (user) {
@@ -156,7 +156,7 @@ export default function TeamPage() {
 
     try {
       const response = await teamService.createTeam(newTeam);
-      if (response.success) {
+      if (response.data) {
         alert("팀이 생성되었습니다.");
         setNewTeam({ name: "", description: "" });
         setShowCreateModal(false);
@@ -186,7 +186,7 @@ export default function TeamPage() {
       const response = await teamService.createInviteCode(selectedTeam.id, {
         expiresInHours: 24,
       });
-      if (response.success) {
+      if (response.data) {
         setInviteCode(response.data.inviteCode);
         setShowInviteModal(true);
       }
@@ -203,7 +203,7 @@ export default function TeamPage() {
 
     try {
       const response = await teamService.joinTeam({ inviteCode: joinCode });
-      if (response.success) {
+      if (response.data) {
         alert("팀에 가입했습니다.");
         setShowJoinModal(false);
         setJoinCode("");
@@ -219,7 +219,7 @@ export default function TeamPage() {
 
     try {
       const response = await teamService.leaveTeam(selectedTeam.id);
-      if (response.success) {
+      if (response.data) {
         alert("팀에서 나갔습니다.");
         setShowLeaveModal(false);
         setSelectedTeam(null);
@@ -235,7 +235,7 @@ export default function TeamPage() {
 
     try {
       const response = await teamService.deleteTeam(selectedTeam.id);
-      if (response.success) {
+      if (response.data) {
         alert("팀이 삭제되었습니다.");
         setShowDeleteModal(false);
         setSelectedTeam(null);
@@ -256,7 +256,7 @@ export default function TeamPage() {
           selectedTeam.id,
           memberId,
         );
-        if (response.success) {
+        if (response.data) {
           setTeamMembers(teamMembers.filter((m) => m.memberId !== memberId));
           alert("멤버가 제거되었습니다.");
         }
@@ -285,7 +285,7 @@ export default function TeamPage() {
 
     try {
       const response = await teamService.updateTeam(selectedTeam.id, editTeam);
-      if (response.success) {
+      if (response.data) {
         alert("팀 정보가 수정되었습니다.");
         setShowEditModal(false);
         setSelectedTeam((prev) =>

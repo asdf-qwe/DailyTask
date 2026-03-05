@@ -41,7 +41,7 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingTeams(true);
     try {
       const response = await teamService.getTeam();
-      if (response.success) {
+      if (response.data) {
         setTeams(
           response.data.map((team) => ({
             teamId: team.teamId,

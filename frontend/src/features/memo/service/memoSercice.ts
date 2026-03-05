@@ -13,13 +13,7 @@ import {
 // API 기본 URL
 const API_PREFIX = "/api/v1";
 
-// API 응답 타입
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  errorCode?: string;
-}
+import { ApiResponse, ErrorResponse } from "../../../types/api";
 
 /**
  * 메모 서비스
@@ -32,11 +26,18 @@ export const memoService = {
     teamId: number,
     request: CreateMemoReq,
   ): Promise<ApiResponse<CreateMemoRes>> => {
-    const response = await authApi.post<ApiResponse<CreateMemoRes>>(
-      `${API_PREFIX}/teams/${teamId}/memos`,
-      request,
-    );
-    return response.data;
+    try {
+      const response = await authApi.post<ApiResponse<CreateMemoRes>>(
+        `${API_PREFIX}/teams/${teamId}/memos`,
+        request,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        throw error.response.data as ErrorResponse;
+      }
+      throw error;
+    }
   },
 
   /**
@@ -48,38 +49,58 @@ export const memoService = {
     size: number = 10,
     searchCond?: MemoSearchCond,
   ): Promise<ApiResponse<MemoListRes>> => {
-    const params = {
-      page,
-      size,
-      sort: "createdAt,desc",
-      ...searchCond,
-    };
-
-    const response = await authApi.get<ApiResponse<MemoListRes>>(
-      `${API_PREFIX}/teams/${teamId}/memos`,
-      { params },
-    );
-    return response.data;
+    try {
+      const params = {
+        page,
+        size,
+        sort: "createdAt,desc",
+        ...searchCond,
+      };
+      const response = await authApi.get<ApiResponse<MemoListRes>>(
+        `${API_PREFIX}/teams/${teamId}/memos`,
+        { params },
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        throw error.response.data as ErrorResponse;
+      }
+      throw error;
+    }
   },
 
   /**
    * 대시보드용 최근 메모 조회
    */
   getRecentMemos: async (): Promise<ApiResponse<RecentMemoRes[]>> => {
-    const response = await authApi.get<ApiResponse<RecentMemoRes[]>>(
-      `${API_PREFIX}/memos/recent`,
-    );
-    return response.data;
+    try {
+      const response = await authApi.get<ApiResponse<RecentMemoRes[]>>(
+        `${API_PREFIX}/memos/recent`,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        throw error.response.data as ErrorResponse;
+      }
+      throw error;
+    }
   },
 
   /**
    * 메모 상세 조회
    */
   getMemo: async (memoId: number): Promise<ApiResponse<MemoRes>> => {
-    const response = await authApi.get<ApiResponse<MemoRes>>(
-      `${API_PREFIX}/memos/${memoId}`,
-    );
-    return response.data;
+    try {
+      const response = await authApi.get<ApiResponse<MemoRes>>(
+        `${API_PREFIX}/memos/${memoId}`,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        throw error.response.data as ErrorResponse;
+      }
+      throw error;
+    }
   },
 
   /**

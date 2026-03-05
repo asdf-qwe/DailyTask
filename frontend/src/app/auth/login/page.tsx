@@ -24,7 +24,7 @@ export default function LoginPage() {
 
     try {
       const response = await authService.login(formData);
-      if (response.success) {
+      if (response.data) {
         // WebSocket 인증용 토큰 저장
         if (response.data?.accessToken) {
           tokenStore.setToken(response.data.accessToken);
