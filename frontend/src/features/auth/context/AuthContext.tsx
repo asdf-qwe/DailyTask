@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUser = useCallback(async () => {
     try {
       const response = await authService.getMyProfile();
-      if (response.success) {
+      if (response.data) {
         setUser(response.data);
       }
     } catch {
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const response = await authService.refreshToken();
-        if (response.success && response.data?.accessToken) {
+        if (response.data?.accessToken) {
           tokenStore.setToken(response.data.accessToken);
           lastRefreshSuccessAtRef.current = Date.now();
           scheduleNextRefresh();

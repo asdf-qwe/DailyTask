@@ -6,6 +6,8 @@ import com.project4.DailyTask.domain.memo.entity.Visibility;
 import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -25,26 +27,13 @@ public class MemoRepositoryImpl implements MemoRepositoryCustom{
 
     @Override
     public Page<MemoSummary> searchMemo(Long teamId, Long actorId, Long authorId,
-                                        LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+                                        LocalDateTime startDate, LocalDateTime endDate,
+                                        Pageable pageable) {
+
         QMemo m = QMemo.memo;
 
-        BooleanBuilder where = new BooleanBuilder()
-                .and(m.team.id.eq(teamId))
-                .and(m.visibility.eq(Visibility.TEAM)
-                        .or(m.visibility.eq(Visibility.PRIVATE).and(m.user.id.eq(actorId))));
-
-        if (authorId != null) {
-            where.and(m.user.id.eq(authorId));
-        }
-        if (startDate != null) {
-            where.and(m.createdAt.goe(startDate));
-        }
-        if (endDate != null) {
-            where.and(m.createdAt.loe(endDate));
-        }
-
         List<MemoSummary> content = queryFactory
-                .select(com.querydsl.core.types.Projections.constructor(
+                .select(Projections.constructor(
                         MemoSummary.class,
                         m.id,
                         m.title,
@@ -53,7 +42,13 @@ public class MemoRepositoryImpl implements MemoRepositoryCustom{
                         m.createdAt
                 ))
                 .from(m)
-                .where(where)
+                .where(
+                        teamIdEq(teamId),
+                        visibilityFilter(actorId),
+                        authorIdEq(authorId),
+                        createdAfter(startDate),
+                        createdBefore(endDate)
+                )
                 .orderBy(toOrderSpecifiers(pageable, m))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -62,10 +57,39 @@ public class MemoRepositoryImpl implements MemoRepositoryCustom{
         Long total = queryFactory
                 .select(m.count())
                 .from(m)
-                .where(where)
+                .where(
+                        teamIdEq(teamId),
+                        visibilityFilter(actorId),
+                        authorIdEq(authorId),
+                        createdAfter(startDate),
+                        createdBefore(endDate)
+                )
                 .fetchOne();
 
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
+    }
+
+    private BooleanExpression teamIdEq(Long teamId) {
+        return QMemo.memo.team.id.eq(teamId);
+    }
+
+    private BooleanExpression visibilityFilter(Long actorId) {
+        QMemo m = QMemo.memo;
+        return m.visibility.eq(Visibility.TEAM)
+                .or(m.visibility.eq(Visibility.PRIVATE)
+                        .and(m.user.id.eq(actorId)));
+    }
+
+    private BooleanExpression authorIdEq(Long authorId) {
+        return authorId != null ? QMemo.memo.user.id.eq(authorId) : null;
+    }
+
+    private BooleanExpression createdAfter(LocalDateTime startDate) {
+        return startDate != null ? QMemo.memo.createdAt.goe(startDate) : null;
+    }
+
+    private BooleanExpression createdBefore(LocalDateTime endDate) {
+        return endDate != null ? QMemo.memo.createdAt.loe(endDate) : null;
     }
 
     private com.querydsl.core.types.OrderSpecifier<?>[] toOrderSpecifiers(Pageable pageable, QMemo m) {

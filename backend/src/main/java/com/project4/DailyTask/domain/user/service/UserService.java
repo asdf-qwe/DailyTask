@@ -1,6 +1,7 @@
 package com.project4.DailyTask.domain.user.service;
 
 import com.project4.DailyTask.domain.user.dto.SignupRequestDto;
+import com.project4.DailyTask.domain.user.dto.UserResponseDto;
 import com.project4.DailyTask.domain.user.entity.Status;
 import com.project4.DailyTask.domain.user.entity.User;
 import com.project4.DailyTask.domain.user.entity.UserRole;
@@ -23,7 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public User signup(SignupRequestDto req) {
+    public UserResponseDto signup(SignupRequestDto req) {
         if (userRepository.existsByEmail(req.email())) {
             throw new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
@@ -38,7 +39,14 @@ public class UserService {
                 req.nickname()
         );
 
-        return userRepository.save(user);
+        userRepository.save(user);
+
+        return new UserResponseDto(
+                user.getId(),
+                user.getEmail(),
+                user.getNickname(),
+                user.getRole()
+        );
     }
 
     @Transactional(readOnly = true)

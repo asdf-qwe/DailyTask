@@ -8,12 +8,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const WS_BASE_URL = API_BASE_URL.replace(/^http/, "ws");
 const API_PREFIX = "/api/v1/messages";
 
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  errorCode?: string;
-}
+import { ApiResponse, ErrorResponse } from "../../../types/api";
 
 class WebSocketClient {
   private client: Client | null = null;
@@ -134,10 +129,17 @@ export const messageService = {
   getChatHistory: async (
     channelId: number,
   ): Promise<ApiResponse<MessageRes[]>> => {
-    const response = await authApi.get<ApiResponse<MessageRes[]>>(
-      `${API_PREFIX}/channel/${channelId}`,
-    );
-    return response.data;
+    try {
+      const response = await authApi.get<ApiResponse<MessageRes[]>>(
+        `${API_PREFIX}/channel/${channelId}`,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        throw error.response.data as ErrorResponse;
+      }
+      throw error;
+    }
   },
 
   connectWebSocket: async (): Promise<void> => {

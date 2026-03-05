@@ -135,6 +135,11 @@ public class ApiV1MemoService {
     }
 
     private void validateMemoAuthority(Memo memo, TeamMember teamMember, Long actorId){
+
+        if (memo.getVisibility() == Visibility.PRIVATE && !memo.isAuthor(actorId)) {
+            throw new ApiException(ErrorCode.MEMO_DELETE_FORBIDDEN);
+        }
+
         if (!memo.isAuthor(actorId) && !teamMember.isOwner(Role.OWNER)) {
             throw new ApiException(ErrorCode.MEMO_DELETE_FORBIDDEN);
         }

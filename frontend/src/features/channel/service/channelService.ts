@@ -8,13 +8,7 @@ import {
 // API 기본 URL
 const API_PREFIX = "/api/v1/teams";
 
-// API 응답 타입
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  errorCode?: string;
-}
+import { ApiResponse, ErrorResponse } from "../../../types/api";
 
 /**
  * 채널 서비스
@@ -27,11 +21,18 @@ export const channelService = {
     teamId: number,
     request: CreateChannelReq,
   ): Promise<ApiResponse<CreateChannelRes>> => {
-    const response = await authApi.post<ApiResponse<CreateChannelRes>>(
-      `${API_PREFIX}/${teamId}/channels`,
-      request,
-    );
-    return response.data;
+    try {
+      const response = await authApi.post<ApiResponse<CreateChannelRes>>(
+        `${API_PREFIX}/${teamId}/channels`,
+        request,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        throw error.response.data as ErrorResponse;
+      }
+      throw error;
+    }
   },
 
   /**
@@ -40,10 +41,17 @@ export const channelService = {
   getChannels: async (
     teamId: number,
   ): Promise<ApiResponse<ChannelListRes[]>> => {
-    const response = await authApi.get<ApiResponse<ChannelListRes[]>>(
-      `${API_PREFIX}/${teamId}/channels`,
-    );
-    return response.data;
+    try {
+      const response = await authApi.get<ApiResponse<ChannelListRes[]>>(
+        `${API_PREFIX}/${teamId}/channels`,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        throw error.response.data as ErrorResponse;
+      }
+      throw error;
+    }
   },
 
   /**
@@ -53,9 +61,16 @@ export const channelService = {
     teamId: number,
     channelId: number,
   ): Promise<ApiResponse<boolean>> => {
-    const response = await authApi.delete<ApiResponse<boolean>>(
-      `${API_PREFIX}/${teamId}/channels/${channelId}`,
-    );
-    return response.data;
+    try {
+      const response = await authApi.delete<ApiResponse<boolean>>(
+        `${API_PREFIX}/${teamId}/channels/${channelId}`,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        throw error.response.data as ErrorResponse;
+      }
+      throw error;
+    }
   },
 };

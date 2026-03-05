@@ -122,7 +122,7 @@ function ChatPageContent() {
       if (!selectedTeamId) return;
       try {
         const response = await teamService.getTeamMembers(selectedTeamId);
-        if (response.success) {
+        if (response.data) {
           setTeamMembers(response.data);
         }
       } catch {}
@@ -139,7 +139,7 @@ function ChatPageContent() {
       setIsLoadingChannels(true);
       try {
         const response = await channelService.getChannels(selectedTeamId);
-        if (response.success) {
+        if (response.data) {
           setChannels(response.data);
         }
       } catch {
@@ -170,9 +170,9 @@ function ChatPageContent() {
       const response = await channelService.createChannel(selectedTeamId, {
         name: newChannelName,
       });
-      if (response.success) {
+      if (response.data) {
         const channelsRes = await channelService.getChannels(selectedTeamId);
-        if (channelsRes.success) {
+        if (channelsRes.data) {
           setChannels(channelsRes.data);
         }
         setShowCreateChannelModal(false);
@@ -197,9 +197,9 @@ function ChatPageContent() {
           selectedTeamId,
           channelId,
         );
-        if (response.success) {
+        if (response.data) {
           const channelsRes = await channelService.getChannels(selectedTeamId);
-          if (channelsRes.success) {
+          if (channelsRes.data) {
             setChannels(channelsRes.data);
           }
           if (selectedChannel?.id === channelId) {
@@ -229,7 +229,7 @@ function ChatPageContent() {
         const response = await messageService.getChatHistory(
           selectedChannel.id,
         );
-        if (!isCancelled && response.success) {
+        if (!isCancelled && response.data) {
           setMessages(response.data);
         }
       } catch {

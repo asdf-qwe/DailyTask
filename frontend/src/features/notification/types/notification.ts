@@ -1,5 +1,5 @@
 export enum NotificationType {
-  CHANNEL_MESSAGE = "CHANNEL_MESSAGE"
+  CHANNEL_MESSAGE = "CHANNEL_MESSAGE",
 }
 
 export interface NotificationRes {
@@ -12,6 +12,4 @@ export interface NotificationRes {
   createdAt: string;
 }
 
-export interface SuccessRes {
-  success: boolean;
-}
+export interface SuccessRes {}

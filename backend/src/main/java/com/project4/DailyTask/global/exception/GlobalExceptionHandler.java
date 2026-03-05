@@ -1,6 +1,7 @@
 package com.project4.DailyTask.global.exception;
 
 import com.project4.DailyTask.global.response.ApiResponse;
+import com.project4.DailyTask.global.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
-    public ResponseEntity<ApiResponse<Void>> handleApiException(ApiException e, HttpServletRequest req) {
+    public ResponseEntity<ErrorResponse> handleApiException(ApiException e, HttpServletRequest req) {
         ErrorCode code = e.getErrorCode();
 
         log.warn("API_EX method={} uri={} errorCode={} status={} msg={}",
@@ -26,11 +27,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(code.getHttpStatus())
-                .body(ApiResponse.fail(code.getMessage()));
+                .body(ErrorResponse.of(code.name(), code.getMessage(), req.getRequestURI()));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception e, HttpServletRequest req) {
+    public ResponseEntity<ErrorResponse> handleGeneralException(Exception e, HttpServletRequest req) {
 
         log.error("UNHANDLED_EX method={} uri={} msg={}",
                 req.getMethod(),
@@ -41,6 +42,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.fail("서버 내부 오류가 발생했습니다."));
+                .body(ErrorResponse.of("INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.", req.getRequestURI()));
     }
 }

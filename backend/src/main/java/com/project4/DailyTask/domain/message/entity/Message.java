@@ -12,7 +12,6 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuperBuilder
 public class Message extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

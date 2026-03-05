@@ -46,14 +46,8 @@ public class TeamMember{
 
     private LocalDateTime leftAt;
 
-    public boolean isOwner() {
-        return this.role == Role.OWNER;
-    }
     public boolean isJoined() {
         return this.teamStatus == TeamStatus.JOINED;
-    }
-    public boolean isLeft() {
-        return this.teamStatus == TeamStatus.LEFT;
     }
 
     public static TeamMember createTeamMember(Team team, User user, Role role, LocalDateTime joinedAt){
@@ -65,7 +59,6 @@ public class TeamMember{
         teamMember.joinedAt = joinedAt;
         return teamMember;
     }
-
 
     public void applyOldMemberUpdate(){
         this.teamStatus = TeamStatus.JOINED;
@@ -85,4 +78,8 @@ public class TeamMember{
     public boolean isOwner(Role role){
         return this.role == Role.OWNER;
     }
+    public boolean isOwner(){
+        return this.role == Role.OWNER;
+    }
+
 }

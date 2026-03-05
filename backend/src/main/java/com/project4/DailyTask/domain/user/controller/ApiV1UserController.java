@@ -23,9 +23,9 @@ public class ApiV1UserController {
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<UserResponseDto>> signup(@Valid @RequestBody SignupRequestDto req) {
-        User user = userService.signup(req);
+        UserResponseDto UserResponseDto = userService.signup(req);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(UserResponseDto.fromEntity(user)));
+                .body(ApiResponse.ok(UserResponseDto));
     }
 
     @GetMapping("/check-email")

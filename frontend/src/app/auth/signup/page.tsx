@@ -63,7 +63,7 @@ export default function SignupPage() {
 
     try {
       const response = await authService.checkLoginId(formData.loginId);
-      if (response.success) {
+      if (response.data) {
         setValidation((prev) => ({
           ...prev,
           loginId: {
@@ -115,7 +115,7 @@ export default function SignupPage() {
 
     try {
       const response = await authService.checkEmail(formData.email);
-      if (response.success) {
+      if (response.data) {
         setValidation((prev) => ({
           ...prev,
           email: {
@@ -179,7 +179,7 @@ export default function SignupPage() {
       };
 
       const response = await authService.signup(signupData);
-      if (response.success) {
+      if (response.data) {
         alert("회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.");
         router.push("/auth/login");
       } else {
