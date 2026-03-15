@@ -36,32 +36,41 @@ public class ApiV1MessageService {
     private final TeamMemberRepository teamMemberRepository;
     private final ChannelRepository channelRepository;
     private final UserRepository userRepository;
-    private final SimpMessagingTemplate messagingTemplate;
     private final ApiV1NotificationService notificationService;
     private final TeamMemberChecker teamMemberChecker;
 
     @Transactional
-    public void sendMessage(Long channelId, Long userId, SendMessageDto dto){
+    public MessageRes sendMessage(Long teamId, Long channelId, Long userId, SendMessageDto dto) {
         Channel channel = findChannelOrThrow(channelId);
+
+        Long actualTeamId = channel.getTeam().getId();
+        if (!actualTeamId.equals(teamId)) {
+            throw new ApiException(ErrorCode.CHANNEL_MESSAGE_FORBIDDEN);
+        }
 
         User sender = userRepository.findByIdAndStatus(userId, Status.ACTIVE)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-        Team team = channel.getTeam();
-        teamMemberChecker.requireJoined(team.getId(), userId);
-        Message message = Message.createMessage(channel, sender, dto.content(), sender.getNickname(), sender.getId());
-        messageRepository.save(message);
-        createNotification(team, sender, channelId);
+        teamMemberChecker.requireJoined(actualTeamId, userId);
 
-        MessageRes res = new MessageRes(
+        Message message = Message.createMessage(
+                channel,
+                sender,
+                dto.content(),
+                sender.getNickname(),
+                sender.getId()
+        );
+        messageRepository.save(message);
+
+        createNotification(channel.getTeam(), sender, channelId);
+
+        return new MessageRes(
                 message.getId(),
                 channelId,
                 new MessageAuthor(sender.getId(), sender.getNickname()),
                 message.getContent(),
                 message.getCreatedAt()
         );
-
-        messagingTemplate.convertAndSend("/topic/team/" + team.getId() + "/channel/" + channelId, res);
     }
 
     private void createNotification(Team team, User user, Long channelId){

@@ -4,10 +4,15 @@ import com.project4.DailyTask.global.response.ApiResponse;
 import com.project4.DailyTask.global.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Slf4j
 @RestControllerAdvice
@@ -43,5 +48,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of("INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.", req.getRequestURI()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(
+            MethodArgumentNotValidException e,
+            HttpServletRequest request
+    ) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .orElse("잘못된 요청입니다.");
+
+        ErrorResponse body = new ErrorResponse(
+                "INVALID_INPUT",
+                message,
+                request.getRequestURI(),
+                Instant.now()
+        );
+
+        return ResponseEntity.badRequest().body(body);
     }
 }

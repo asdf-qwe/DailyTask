@@ -54,6 +54,7 @@ public class User extends BaseEntity {
         user.loginId = loginId;
         user.email = email;
         user.password = encodedPw;
+        user.nickname = nickname;
         user.profileUrl = "example";
         user.status = Status.ACTIVE;
         user.role = UserRole.USER;

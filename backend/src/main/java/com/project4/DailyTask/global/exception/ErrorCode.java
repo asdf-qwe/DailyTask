@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     // 400 BAD_REQUEST (잘못된 요청 / Validation 실패)
+    INVALID_INPUT(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     TODO_STATUS_REQUIRED(HttpStatus.BAD_REQUEST,"Todo 상태가 없습니다."),
     TEAM_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "팀 이름이 없습니다."),
     INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "잘못된 초대 코드입니다."),

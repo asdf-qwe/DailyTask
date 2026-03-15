@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,19 +26,22 @@ import java.util.List;
 @RequestMapping("/api/v1/messages")
 public class ApiV1MessageController {
     private final ApiV1MessageService messageService;
-
+    private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/team/{teamId}/channel/{channelId}")
     public void handleRoomMessage(@DestinationVariable Long teamId,
                                   @DestinationVariable Long channelId,
                                   SendMessageDto messageDto,
-                                  Principal principal
-                                  ) {
+                                  Principal principal) {
         Authentication authentication = (Authentication) principal;
         Long userId = (Long) authentication.getPrincipal();
-        messageService.sendMessage(channelId, userId, messageDto);
-    }
 
+        MessageRes res = messageService.sendMessage(teamId, channelId, userId, messageDto);
+
+        messagingTemplate.convertAndSend(
+                "/topic/team/" + teamId + "/channel/" + channelId, res
+        );
+    }
 
     @GetMapping("/channel/{channelId}")
     public ResponseEntity<ApiResponse<List<MessageRes>>> getChatHistory(@PathVariable Long channelId,
