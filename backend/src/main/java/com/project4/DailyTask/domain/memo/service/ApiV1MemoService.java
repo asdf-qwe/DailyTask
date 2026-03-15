@@ -115,7 +115,7 @@ public class ApiV1MemoService {
 
         TeamMember teamMember = teamMemberChecker.findMemberOrThrow(memo.getTeam().getId(), user.getId());
 
-        validateMemoAuthority(memo, teamMember, user.getId());
+        validateMemoUpdateAuthority(memo, teamMember, user.getId());
 
         memo.update(req.title(), req.content(), req.sharedToTeam());
 
@@ -129,19 +129,28 @@ public class ApiV1MemoService {
 
         TeamMember teamMember = teamMemberChecker.findMemberOrThrow(memo.getTeam().getId(), user.getId());
 
-        validateMemoAuthority(memo, teamMember, user.getId());
+        validateMemoDeleteAuthority(memo, teamMember, user.getId());
 
         memoRepository.delete(memo);
     }
 
-    private void validateMemoAuthority(Memo memo, TeamMember teamMember, Long actorId){
-
+    private void validateMemoDeleteAuthority(Memo memo, TeamMember teamMember, Long actorId) {
         if (memo.getVisibility() == Visibility.PRIVATE && !memo.isAuthor(actorId)) {
             throw new ApiException(ErrorCode.MEMO_DELETE_FORBIDDEN);
         }
 
         if (!memo.isAuthor(actorId) && !teamMember.isOwner(Role.OWNER)) {
             throw new ApiException(ErrorCode.MEMO_DELETE_FORBIDDEN);
+        }
+    }
+
+    private void validateMemoUpdateAuthority(Memo memo, TeamMember teamMember, Long actorId) {
+        if (memo.getVisibility() == Visibility.PRIVATE && !memo.isAuthor(actorId)) {
+            throw new ApiException(ErrorCode.MEMO_UPDATE_FORBIDDEN);
+        }
+
+        if (!memo.isAuthor(actorId) && !teamMember.isOwner(Role.OWNER)) {
+            throw new ApiException(ErrorCode.MEMO_UPDATE_FORBIDDEN);
         }
     }
 
