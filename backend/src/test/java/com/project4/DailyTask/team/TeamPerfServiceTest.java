@@ -118,14 +118,13 @@ class TeamPerfServiceTest {
     }
 
     private User createUser(String key) {
-        User user = User.builder()
-                .loginId("login_" + key)
-                .email(key + "@test.com")
-                .password("encodedPassword")
-                .nickname("nick_" + key)
-                .role(UserRole.USER)
-                .status(Status.ACTIVE)
-                .build();
+
+        User user = User.createNew(
+                "login_" + key,
+                key + "@test.com",
+                "encodedPassword",
+                "nick_" + key
+                );
 
         return userRepository.save(user);
     }

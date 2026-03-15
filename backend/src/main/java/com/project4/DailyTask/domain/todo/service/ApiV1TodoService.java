@@ -36,29 +36,36 @@ public class ApiV1TodoService {
 
     @Transactional
     public CreateTodoRes createTodo(SecurityUser user, CreateTodoReq req) {
-        User ref = userRepository.getReferenceById(user.getId());
+        User owner = userRepository.getReferenceById(user.getId());
 
-        Todo todo = Todo.createPersonalTodo(ref, req.title(), req.dueDate());
+        Todo todo = Todo.createPersonal(
+                owner,
+                req.title(),
+                req.dueDate()
+        );
 
         Todo saved = todoRepository.save(todo);
 
-        return new CreateTodoRes(saved.getId(), saved.getTitle(), saved.getDueDate(), saved.getTodoStatus());
+        return new CreateTodoRes(
+                saved.getId(),
+                saved.getTitle(),
+                saved.getDueDate(),
+                saved.getTodoStatus()
+        );
     }
-
 
     @Transactional
     public CreateTeamTodoRes createTeamTodo(Long teamId, CreateTodoReq req, SecurityUser user) {
+        TeamMember teamMember = teamMemberChecker.findTeamMemberWithRefsOrThrow(teamId, user.getId());
 
-        TeamMember teamMember = teamMemberChecker.findTeamMemberWithRefsOrThrow(teamId,user.getId());
-
-        Todo teamTodo = Todo.createTeamTodo(
+        Todo todo = Todo.createForTeam(
                 teamMember.getUser(),
                 teamMember.getTeam(),
                 req.title(),
                 req.dueDate()
         );
 
-        Todo saved = todoRepository.save(teamTodo);
+        Todo saved = todoRepository.save(todo);
 
         return new CreateTeamTodoRes(
                 saved.getId(),
@@ -70,7 +77,6 @@ public class ApiV1TodoService {
     }
 
     public TodoListRes getTodoList(SecurityUser user, Pageable pageable, TodoSearchCond cond) {
-
         Page<TodoSummary> todoPage = todoRepository.searchMyTodos(
                 user.getId(),
                 cond.date(),
@@ -90,10 +96,9 @@ public class ApiV1TodoService {
                                        SecurityUser user,
                                        Pageable pageable,
                                        TodoSearchCond cond) {
+        teamMemberChecker.findMemberOrThrow(teamId, user.getId());
 
-        teamMemberChecker.findMemberOrThrow(teamId,user.getId());
-
-        Page<TodoSummary> teamTodoPage = todoRepository.searchTeamTodos(
+        Page<TodoSummary> todoPage = todoRepository.searchTeamTodos(
                 teamId,
                 cond.date(),
                 cond.status(),
@@ -101,78 +106,80 @@ public class ApiV1TodoService {
         );
 
         return new TodoListRes(
-                teamTodoPage.getContent(),
-                teamTodoPage.getNumber(),
-                teamTodoPage.getSize(),
-                teamTodoPage.getTotalElements()
+                todoPage.getContent(),
+                todoPage.getNumber(),
+                todoPage.getSize(),
+                todoPage.getTotalElements()
         );
     }
 
     @Transactional
     public UpdateTodoRes updateTodo(Long todoId, SecurityUser user, UpdateTodoReq req) {
-        Todo todo = todoRepository.findById(todoId)
-                .orElseThrow(() -> new ApiException(ErrorCode.TODO_NOT_FOUND));
+        Todo todo = getTodoOrThrow(todoId);
 
-        validateTodoUpdateAuthority(todo, user.getId());
+        validateManagePermission(todo, user.getId(), ErrorCode.TODO_UPDATE_FORBIDDEN);
 
-        todo.applyUpdate(req.title(), req.date(), req.status());
+        if (req.title() != null) {
+            todo.changeTitle(req.title());
+        }
+        if (req.date() != null) {
+            todo.changeDueDate(req.date());
+        }
+        if (req.status() != null) {
+            todo.changeStatus(req.status());
+        }
 
         return new UpdateTodoRes(todo.getId(), todo.getUpdatedAt());
     }
 
-
-    private void validateTodoUpdateAuthority(Todo todo, Long userId) {
-
-        if (todo.isOwner(userId)) return;
-
-        if (!todo.isTeamTodo()) {
-            throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
-        }
-
-        TeamMember teamMember = teamMemberChecker.findMemberOrThrow(todo.getTeamId(),userId);
-
-        if (!teamMember.isOwner()) {
-            throw new ApiException(ErrorCode.TODO_UPDATE_FORBIDDEN);
-        }
-    }
-
     @Transactional
     public void deleteTodo(Long todoId, SecurityUser user) {
-        Todo todo = todoRepository.findById(todoId)
-                .orElseThrow(() -> new ApiException(ErrorCode.TODO_NOT_FOUND));
+        Todo todo = getTodoOrThrow(todoId);
 
-        validateTodoDeleteAuthority(todo, user.getId());
+        validateManagePermission(todo, user.getId(), ErrorCode.TODO_DELETE_FORBIDDEN);
 
         todoRepository.delete(todo);
     }
 
-    private void validateTodoDeleteAuthority(Todo todo, Long userId) {
-
-        if (todo.isOwner(userId)) return;
-
-        if (!todo.isTeamTodo()) {
-            throw new ApiException(ErrorCode.TODO_DELETE_FORBIDDEN);
-        }
-
-        TeamMember teamMember = teamMemberChecker.findMemberOrThrow(todo.getTeamId(),userId);
-
-        if (!teamMember.isOwner()) {
-            throw new ApiException(ErrorCode.TODO_DELETE_FORBIDDEN);
-        }
+    public List<TodoSummary> getTodoByDueDate(SecurityUser user) {
+        return todoRepository.findByTodosOrderByDueDateAsc(
+                user.getId(),
+                LocalDate.now(),
+                PageRequest.of(0, 5)
+        );
     }
 
-    public List<TodoSummary> getTodoByDueDate(SecurityUser user){
-           return todoRepository.findByTodosOrderByDueDateAsc(user.getId(),
-                   LocalDate.now(),
-                   PageRequest.of(0,5)
-           );
-    }
-
-    public List<TodoSummary> getTeamTodoByDueDate(SecurityUser user){
+    public List<TodoSummary> getTeamTodoByDueDate(SecurityUser user) {
         List<Long> teamIds = teamMemberChecker.findMyTeamIds(user.getId());
-        if (teamIds.isEmpty()) return List.of();
+
+        if (teamIds.isEmpty()) {
+            return List.of();
+        }
 
         return todoRepository.findByTeamTodosOrderByDueDateAsc(
-                teamIds, LocalDate.now(), PageRequest.of(0,5));
+                teamIds,
+                LocalDate.now(),
+                PageRequest.of(0, 5)
+        );
+    }
+
+    private Todo getTodoOrThrow(Long todoId) {
+        return todoRepository.findById(todoId)
+                .orElseThrow(() -> new ApiException(ErrorCode.TODO_NOT_FOUND));
+    }
+
+    private void validateManagePermission(Todo todo, Long userId, ErrorCode errorCode) {
+        if (todo.isOwnedBy(userId)) {
+            return;
+        }
+
+        if (!todo.belongsToTeam()) {
+            throw new ApiException(errorCode);
+        }
+
+        TeamMember teamMember = teamMemberChecker.findMemberOrThrow(todo.teamIdOrNull(), userId);
+        if (!teamMember.isOwner()) {
+            throw new ApiException(errorCode);
+        }
     }
 }

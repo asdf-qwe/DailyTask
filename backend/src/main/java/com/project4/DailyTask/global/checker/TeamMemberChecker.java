@@ -27,6 +27,7 @@ public class TeamMemberChecker {
     public TeamMember findTeamMemberWithRefsOrThrow(Long teamId, Long userId) {
         return teamMemberRepository.findByTeamIdAndUserIdWithUserAndTeam(teamId, userId)
                 .filter(TeamMember::isJoined)
+                .filter(TeamMember::isOwner)
                 .orElseThrow(() -> new ApiException(ErrorCode.TEAM_MEMBER_NOT_FOUND));
     }
 
