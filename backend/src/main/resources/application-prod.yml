@@ -44,7 +44,7 @@ custom:
       secure: true
       sameSite: None
     cookieDomain: ${COOKIE_DOMAIN}
-    frontUrl: ${FRONT_URL}"
+    frontUrl: ${FRONT_URL}
     backUrl: ${BACK_URL}
   genFile:
     dirPath: /gen
