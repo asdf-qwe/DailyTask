@@ -25,7 +25,7 @@ public interface TodoRepository extends JpaRepository<Todo, Long>, TodoRepositor
             t.todoStatus
             )
             from Todo t
-            where t.user.id = :userId
+            where t.owner.id = :userId
               and t.team is null
               and t.dueDate = :today
             order by t.dueDate asc, t.id desc

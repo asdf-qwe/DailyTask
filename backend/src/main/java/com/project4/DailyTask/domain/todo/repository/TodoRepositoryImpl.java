@@ -85,7 +85,7 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
 
     private BooleanExpression scopeFilter(QTodo t, Long userId, Long teamId) {
         if (userId != null) {
-            return t.user.id.eq(userId).and(t.team.isNull());
+            return t.owner.id.eq(userId).and(t.team.isNull());
         }
         if (teamId != null) {
             return t.team.id.eq(teamId);
