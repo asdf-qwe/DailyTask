@@ -59,7 +59,7 @@ public enum ErrorCode {
     // 409 CONFLICT (중복 / 상태 충돌)
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 등록된 이메일입니다."),
     LOGIN_ID_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
-    ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT, "중복 초대입니다."),
+    ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT, "중복 초대입니다1."),
 
     // 413 PAYLOAD_TOO_LARGE (파일 업로드 용량 초과)
     FILE_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "업로드 할 파일 용량이 초과되었습니다."),
