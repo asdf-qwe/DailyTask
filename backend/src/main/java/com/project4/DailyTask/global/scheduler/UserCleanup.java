@@ -13,12 +13,12 @@ import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
-public class HardDeleteUsers {
+public class UserCleanup {
 
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
     @Transactional
-    @Scheduled(cron = "0 0 3 * * *") // 매일 새벽 3시
+    @Scheduled(cron = "0 0 3 * * *")
     public void hardDeleteUsers() {
         var targets = userRepository
                 .findAllByStatusAndDeletedAtBefore(Status.DELETED, LocalDateTime.now().minusDays(30));

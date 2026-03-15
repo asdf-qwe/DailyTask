@@ -36,8 +36,8 @@ logging:
     org.hibernate.orm.jdbc.bind: INFO
     org.hibernate.orm.jdbc.extract: INFO
     org.springframework.transaction.interceptor: INFO
-    io.lettuce.core: DEBUG
-    org.springframework.data.redis: DEBUG
+    io.lettuce.core: WARN
+    org.springframework.data.redis: WARN
 custom:
   site:
     cookie:

@@ -9,9 +9,10 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     // 400 BAD_REQUEST (잘못된 요청 / Validation 실패)
+    TODO_STATUS_REQUIRED(HttpStatus.BAD_REQUEST,"Todo 상태가 없습니다."),
     TEAM_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "팀 이름이 없습니다."),
     INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "잘못된 초대 코드입니다."),
-    INVALID_USER_EMAIL(HttpStatus.BAD_REQUEST, "잘못된 이메일 형식입니다.1"),
+    INVALID_USER_EMAIL(HttpStatus.BAD_REQUEST, "잘못된 이메일 형식입니다."),
     MEMO_REQUIRED_FIELDS(HttpStatus.BAD_REQUEST, "메모 생성시 필수값이 누락되었습니다."),
     TODO_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "제목이 없어 TODO를 생성할 수 없습니다."),
     UNSUPPORTED_SORT(HttpStatus.BAD_REQUEST, "지원되지 않는 정렬입니다."),
