@@ -31,7 +31,7 @@ public class Team extends BaseEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @OneToMany(mappedBy = "team", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "team")
     private List<TeamMember> teamMembers = new ArrayList<>();
 
     public void changeTeamName(String name) {
@@ -45,20 +45,14 @@ public class Team extends BaseEntity {
         this.name = v;
     }
 
-    public static Team createTeam(String name, String description){
-        Team team = new Team();
-        team.changeTeamName(name);
-        team.description = description;
-        return team;
-    }
-
-    public void updateInfo(String name, String description) {
-        this.name = name;
+    public Team (String name, String description){
+        this.changeTeamName(name);
         this.description = description;
     }
 
-    public boolean isDeleted() {
-        return deletedAt != null;
+    public void updateInfo(String name, String description) {
+        changeTeamName(name);
+        this.description = description;
     }
 
     public void delete() {

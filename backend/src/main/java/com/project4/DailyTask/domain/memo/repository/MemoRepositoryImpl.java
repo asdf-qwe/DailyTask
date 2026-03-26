@@ -21,7 +21,7 @@ import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
-public class MemoRepositoryImpl implements MemoRepositoryCustom{
+public class MemoRepositoryImpl implements MemoRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
 
@@ -38,7 +38,7 @@ public class MemoRepositoryImpl implements MemoRepositoryCustom{
                         m.id,
                         m.title,
                         m.user.nickname,
-                        m.visibility.eq(Visibility.TEAM),
+                        m.visibility,
                         m.createdAt
                 ))
                 .from(m)
@@ -94,7 +94,7 @@ public class MemoRepositoryImpl implements MemoRepositoryCustom{
 
     private com.querydsl.core.types.OrderSpecifier<?>[] toOrderSpecifiers(Pageable pageable, QMemo m) {
         if (pageable.getSort().isUnsorted()) {
-            return new com.querydsl.core.types.OrderSpecifier[]{ m.id.desc() };
+            return new com.querydsl.core.types.OrderSpecifier[]{m.id.desc()};
         }
 
         List<com.querydsl.core.types.OrderSpecifier<?>> orders = new ArrayList<>();
@@ -108,14 +108,14 @@ public class MemoRepositoryImpl implements MemoRepositoryCustom{
                 case "title" -> orders.add(new com.querydsl.core.types.OrderSpecifier<>(direction, m.title));
                 case "createdAt" -> orders.add(new com.querydsl.core.types.OrderSpecifier<>(direction, m.createdAt));
                 case "authorName" -> orders.add(new com.querydsl.core.types.OrderSpecifier<>(direction, m.user.nickname));
+                case "visibility" -> orders.add(new com.querydsl.core.types.OrderSpecifier<>(direction, m.visibility));
                 default -> throw new ApiException(ErrorCode.UNSUPPORTED_SORT);
             }
         }
 
         if (orders.isEmpty()) {
-            return new com.querydsl.core.types.OrderSpecifier[]{ m.id.desc() };
+            return new com.querydsl.core.types.OrderSpecifier[]{m.id.desc()};
         }
         return orders.toArray(new com.querydsl.core.types.OrderSpecifier[0]);
     }
 }
-

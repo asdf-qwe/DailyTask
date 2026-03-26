@@ -26,7 +26,7 @@ public class ApiV1MemoController {
     @PostMapping("/teams/{teamId}/memos")
     public ResponseEntity<ApiResponse<CreateMemoRes>> createMemo(@PathVariable Long teamId,
                                                                  @AuthenticationPrincipal SecurityUser user,
-                                                                 @RequestBody CreateMemoReq req){
+                                                                 @RequestBody CreateMemoReq req) {
         CreateMemoRes res = memoService.createMemo(teamId, user, req);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(res));
@@ -40,7 +40,6 @@ public class ApiV1MemoController {
             Pageable pageable,
             @ModelAttribute MemoSearchCond cond
     ) {
-
         MemoListRes memoListRes = memoService.getMemoList(teamId, loginUser, pageable, cond);
 
         return ResponseEntity.ok(ApiResponse.ok(memoListRes));
@@ -48,7 +47,7 @@ public class ApiV1MemoController {
 
     @GetMapping("/memos/{memoId}")
     public ResponseEntity<ApiResponse<MemoRes>> getMemo(@PathVariable Long memoId,
-                                                        @AuthenticationPrincipal SecurityUser user){
+                                                        @AuthenticationPrincipal SecurityUser user) {
 
         MemoRes memoRes = memoService.getMemo(memoId, user);
 
@@ -58,23 +57,22 @@ public class ApiV1MemoController {
     @PatchMapping("/memos/{memoId}")
     public ResponseEntity<ApiResponse<UpdateMemoRes>> updateMemo(@PathVariable Long memoId,
                                                                  @AuthenticationPrincipal SecurityUser user,
-                                                                 @RequestBody UpdateMemoReq req){
+                                                                 @RequestBody UpdateMemoReq req) {
         UpdateMemoRes res = memoService.updateMemo(req, memoId, user);
 
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
-
     @DeleteMapping("/memos/{memoId}")
     public ResponseEntity<ApiResponse<Boolean>> deleteMemo(@PathVariable Long memoId,
-                                                           @AuthenticationPrincipal SecurityUser user){
-        memoService.deleteMemo(memoId,user);
+                                                           @AuthenticationPrincipal SecurityUser user) {
+        memoService.deleteMemo(memoId, user);
 
         return ResponseEntity.ok(ApiResponse.ok(true));
     }
 
     @GetMapping("/memos/recent")
-    public ResponseEntity<ApiResponse<List<RecentMemoRes>>> getRecentMemos(@AuthenticationPrincipal SecurityUser user){
+    public ResponseEntity<ApiResponse<List<RecentMemoRes>>> getRecentMemos(@AuthenticationPrincipal SecurityUser user) {
         return ResponseEntity.ok(ApiResponse.ok(memoService.getMemosByCreatedDesc(user)));
     }
 }

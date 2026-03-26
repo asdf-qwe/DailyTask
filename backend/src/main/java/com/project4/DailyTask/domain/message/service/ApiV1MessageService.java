@@ -53,7 +53,7 @@ public class ApiV1MessageService {
 
         teamMemberChecker.requireJoined(actualTeamId, userId);
 
-        Message message = Message.createMessage(
+        Message message = new Message(
                 channel,
                 sender,
                 dto.content(),

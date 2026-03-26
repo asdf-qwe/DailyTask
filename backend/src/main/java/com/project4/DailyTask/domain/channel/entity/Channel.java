@@ -28,10 +28,8 @@ public class Channel extends BaseEntity {
     @OneToMany(mappedBy = "channel")
     private List<Message> messages = new ArrayList<>();
 
-    public static Channel createChannel(Team team, String name){
-        Channel channel = new Channel();
-        channel.team = team;
-        channel.name = name;
-        return channel;
+    public Channel(Team team, String name) {
+        this.team = team;
+        this.name = name;
     }
 }

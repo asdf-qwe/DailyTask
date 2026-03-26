@@ -41,28 +41,22 @@ public class Todo extends BaseEntity {
     private LocalDate dueDate;
 
     public static Todo createPersonal(User owner, String title, LocalDate dueDate) {
-        return create(owner, null, title, dueDate);
+        return new Todo(owner, null, title, dueDate);
     }
 
     public static Todo createForTeam(User owner, Team team, String title, LocalDate dueDate) {
         if (team == null) {
             throw new IllegalArgumentException("team todo는 team이 필요합니다.");
         }
-        return create(owner, team, title, dueDate);
+        return new Todo(owner, team, title, dueDate);
     }
 
-    private static Todo create(User owner, Team team, String title, LocalDate dueDate) {
-        if (owner == null) {
-            throw new IllegalArgumentException("todo는 owner가 필요합니다.");
-        }
-
-        Todo todo = new Todo();
-        todo.owner = owner;
-        todo.team = team;
-        todo.todoStatus = TodoStatus.PENDING;
-        todo.changeTitle(title);
-        todo.changeDueDate(dueDate);
-        return todo;
+    private Todo(User owner, Team team, String title, LocalDate dueDate) {
+        this.owner = owner;
+        this.team = team;
+        this.todoStatus = TodoStatus.PENDING;
+        this.changeTitle(title);
+        this.changeDueDate(dueDate);
     }
 
     public boolean isOwnedBy(Long userId) {

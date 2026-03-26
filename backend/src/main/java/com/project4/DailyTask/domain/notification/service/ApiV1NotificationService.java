@@ -38,7 +38,7 @@ public class ApiV1NotificationService {
                                           Long relatedMemoId, Long relatedTeamId) {
         return receiverIds.stream()
                 .distinct()
-                .map(id -> Notification.createNotification(
+                .map(id -> new Notification(
                         userRepository.getReferenceById(id),
                         type, message, relatedMemoId, relatedTeamId
                 ))

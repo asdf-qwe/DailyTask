@@ -50,14 +50,11 @@ public class TeamMember{
         return this.teamStatus == TeamStatus.JOINED;
     }
 
-    public static TeamMember createTeamMember(Team team, User user, Role role, LocalDateTime joinedAt){
-        TeamMember teamMember = new TeamMember();
-        teamMember.team = team;
-        teamMember.user = user;
-        teamMember.role = role;
-        teamMember.teamStatus = TeamStatus.JOINED;
-        teamMember.joinedAt = joinedAt;
-        return teamMember;
+    public TeamMember (Team team, User user, Role role, LocalDateTime joinedAt){
+        this.team = team;
+        this.user = user;
+        this.role = role;
+        this.joinedAt = joinedAt;
     }
 
     public void applyOldMemberUpdate(){
@@ -68,11 +65,13 @@ public class TeamMember{
 
     public void leftMember(){
         this.teamStatus = TeamStatus.LEFT;
+        this.leftAt = LocalDateTime.now();
     }
 
     public void leave() {
-        if (this.role == Role.OWNER) throw new ApiException(ErrorCode.CANNOT_KICK_SELF);
+        if (this.role == Role.OWNER) throw new ApiException(ErrorCode.OWNER_CANNOT_LEAVE);
         this.teamStatus = TeamStatus.LEFT;
+        this.leftAt = LocalDateTime.now();
     }
 
     public boolean isOwner(Role role){

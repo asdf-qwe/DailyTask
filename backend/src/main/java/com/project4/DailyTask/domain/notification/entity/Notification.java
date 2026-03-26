@@ -40,15 +40,13 @@ public class Notification extends BaseEntity {
         this.read = true;
     }
 
-    public static Notification createNotification(User user, NotificationType type, String message,
-                                                  Long relatedMemoId, Long relatedTeamId){
-        Notification notification = new Notification();
-        notification.user = user;
-        notification.type = type;
-        notification.message = message;
-        notification.relatedMemoId = relatedMemoId;
-        notification.relatedTeamId = relatedTeamId;
-        notification.read = false;
-        return notification;
+    public Notification(User user, NotificationType type, String message,
+                        Long relatedMemoId, Long relatedTeamId){
+        this.user = user;
+        this.type = type;
+        this.message = message;
+        this.relatedMemoId = relatedMemoId;
+        this.relatedTeamId = relatedTeamId;
+        this.read = false;
     }
 }

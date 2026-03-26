@@ -22,7 +22,7 @@ public class Memo extends BaseEntity {
     @JoinColumn(name = "team_id")
     private Team team;
 
-    @Column(name = "title",nullable = false, length = 100)
+    @Column(name = "title", nullable = false, length = 100)
     private String title;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
@@ -32,31 +32,35 @@ public class Memo extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Visibility visibility = Visibility.PRIVATE;
 
-    public void changeTitle(String title){
+    public void changeTitle(String title) {
         String t = title.trim();
         if (t.isBlank()) {
             throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
         }
-        if (t.length() > 50){
+        if (t.length() > 50) {
             throw new ApiException(ErrorCode.MEMO_TITLE_TOO_LONG);
         }
         this.title = t;
     }
 
-    public static Memo createMemo(User user, Team team, String title, String content, Visibility visibility){
-        Memo memo = new Memo();
-        memo.user = user;
-        memo.team = team;
-        memo.changeTitle(title);
-        memo.content = content;
-        memo.visibility = visibility;
-        return memo;
+    public Memo(User user, Team team, String title, String content, Visibility visibility) {
+        if (user == null) {
+            throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
+        }
+        if (team == null) {
+            throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
+        }
+        if (visibility == null) {
+            throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
+        }
+
+        this.user = user;
+        this.team = team;
+        this.changeTitle(title);
+        this.changeContent(content);
+        this.changeVisibility(visibility);
     }
-    public void update(String title, String content, Boolean sharedToTeam) {
-        if (title != null) changeTitle(title);
-        if (content != null) changeContent(content);
-        if (sharedToTeam != null) changeVisibility(sharedToTeam ? Visibility.TEAM : Visibility.PRIVATE);
-    }
+
 
     public void changeContent(String content) {
         this.content = content;
@@ -66,8 +70,7 @@ public class Memo extends BaseEntity {
         this.visibility = visibility;
     }
 
-    public boolean isAuthor(Long userId){
+    public boolean isAuthor(Long userId) {
         return this.user != null && this.user.getId().equals(userId);
     }
 }
-
