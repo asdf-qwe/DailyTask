@@ -37,12 +37,13 @@ public class ApiV1MemoService {
 
         TeamMember teamMember = teamMemberChecker.findMemberOrThrow(teamId, user.getId());
 
-        Visibility visibility = Boolean.TRUE.equals(req.sharedToTeam())
-                ? Visibility.TEAM
-                : Visibility.PRIVATE;
-
-        Memo memo = Memo.createMemo(userRepository.getReferenceById(user.getId()),teamMember.getTeam(),
-                req.title(), req.content(),visibility);
+        Memo memo = new Memo(
+                userRepository.getReferenceById(user.getId()),
+                teamMember.getTeam(),
+                req.title(),
+                req.content(),
+                req.visibility()
+        );
 
         memoRepository.save(memo);
 
@@ -51,7 +52,7 @@ public class ApiV1MemoService {
                 teamMember.getTeam().getId(),
                 memo.getTitle(),
                 memo.getContent(),
-                req.sharedToTeam(),
+                memo.getVisibility(),
                 new MemoAuthor(user.getId(), user.getNickname()),
                 memo.getCreatedAt()
         );
@@ -66,7 +67,7 @@ public class ApiV1MemoService {
 
         Page<MemoSummary> memoSummaryPage = memoRepository.searchMemo(
                 teamId,
-                user.getId(),          
+                user.getId(),
                 cond.authorId(),
                 cond.startDate(),
                 cond.endDate(),
@@ -93,8 +94,6 @@ public class ApiV1MemoService {
             throw new ApiException(ErrorCode.MEMO_ACCESS_DENIED);
         }
 
-        boolean sharedToTeam = memo.getVisibility() == Visibility.TEAM;
-
         return new MemoRes(
                 memo.getId(),
                 memo.getTeam().getId(),
@@ -104,10 +103,11 @@ public class ApiV1MemoService {
                         memo.getUser().getId(),
                         memo.getUser().getNickname()
                 ),
-                sharedToTeam,
+                memo.getVisibility(),
                 memo.getCreatedAt()
         );
     }
+
     @Transactional
     public UpdateMemoRes updateMemo(UpdateMemoReq req, Long memoId, SecurityUser user) {
 
@@ -117,7 +117,15 @@ public class ApiV1MemoService {
 
         validateMemoUpdateAuthority(memo, teamMember, user.getId());
 
-        memo.update(req.title(), req.content(), req.sharedToTeam());
+        if (req.title() != null) {
+            memo.changeTitle(req.title());
+        }
+        if (req.content() != null) {
+            memo.changeContent(req.content());
+        }
+        if (req.visibility() != null) {
+            memo.changeVisibility(req.visibility());
+        }
 
         return new UpdateMemoRes(memo.getId(), memo.getTitle(), memo.getUpdatedAt());
     }
@@ -154,17 +162,15 @@ public class ApiV1MemoService {
         }
     }
 
-    private Memo findMemoOrThrow(Long memoId){
+    private Memo findMemoOrThrow(Long memoId) {
         return memoRepository.findById(memoId)
                 .orElseThrow(() -> new ApiException(ErrorCode.MEMO_NOT_FOUND));
     }
 
-    public List<RecentMemoRes> getMemosByCreatedDesc(SecurityUser user){
+    public List<RecentMemoRes> getMemosByCreatedDesc(SecurityUser user) {
         List<Long> teamIds = teamMemberChecker.findMyTeamIds(user.getId());
         if (teamIds.isEmpty()) return List.of();
 
-        return memoRepository.findRecentMemos(
-                teamIds, PageRequest.of(0,3));
+        return memoRepository.findRecentMemos(teamIds, PageRequest.of(0, 3));
     }
 }
-

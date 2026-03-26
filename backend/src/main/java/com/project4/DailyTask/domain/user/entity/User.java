@@ -49,16 +49,14 @@ public class User extends BaseEntity {
 
     private LocalDateTime deletedAt;
 
-    public static User createNew(String loginId, String email, String encodedPw, String nickname) {
-        User user = new User();
-        user.loginId = loginId;
-        user.email = email;
-        user.password = encodedPw;
-        user.nickname = nickname;
-        user.profileUrl = "example";
-        user.status = Status.ACTIVE;
-        user.role = UserRole.USER;
-        return user;
+    public User(String loginId, String email, String encodedPw, String nickname) {
+        this.loginId = loginId;
+        this.email = email;
+        this.password = encodedPw;
+        this.nickname = nickname;
+        this.profileUrl = "example";
+        this.status = Status.ACTIVE;
+        this.role = UserRole.USER;
     }
 
     public boolean isDeleted() {

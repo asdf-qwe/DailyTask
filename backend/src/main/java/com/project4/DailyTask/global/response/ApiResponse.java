@@ -1,10 +1,6 @@
 package com.project4.DailyTask.global.response;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-
 public record ApiResponse<T>(
         T data,
         String message

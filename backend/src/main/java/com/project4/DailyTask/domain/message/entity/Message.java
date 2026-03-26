@@ -31,14 +31,11 @@ public class Message extends BaseEntity {
     @Column(name = "author_id_snapshot")
     private Long authorIdSnapshot;
 
-    public static Message createMessage(Channel channel, User user, String content,
-                                 String authorNicknameSnapshot, Long authorIdSnapshot){
-        Message m = new Message();
-        m.channel = channel;
-        m.user = user;
-        m.content = content;
-        m.authorNicknameSnapshot = authorNicknameSnapshot;
-        m.authorIdSnapshot = authorIdSnapshot;
-        return m;
+    public Message(Channel channel, User user, String content, String authorNicknameSnapshot, Long authorIdSnapshot){
+        this.channel = channel;
+        this.user = user;
+        this.content = content;
+        this.authorNicknameSnapshot = authorNicknameSnapshot;
+        this.authorIdSnapshot = authorIdSnapshot;
     }
 }

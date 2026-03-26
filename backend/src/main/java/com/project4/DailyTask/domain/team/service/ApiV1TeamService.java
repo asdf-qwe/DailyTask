@@ -13,6 +13,7 @@ import com.project4.DailyTask.global.exception.ApiException;
 import com.project4.DailyTask.global.exception.ErrorCode;
 import com.project4.DailyTask.global.security.auth.SecurityUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,11 +37,11 @@ public class ApiV1TeamService {
     public CreateTeamResponse createTeam(CreateTeamRequest dto, SecurityUser user) {
         User ref = userRepository.getReferenceById(user.getId());
 
-        Team team = Team.createTeam(dto.name(), dto.description());
+        Team team = new Team(dto.name(), dto.description());
 
         teamRepository.save(team);
 
-        TeamMember teamMember = TeamMember.createTeamMember(team, ref, Role.OWNER, LocalDateTime.now());
+        TeamMember teamMember = new TeamMember(team, ref, Role.OWNER, LocalDateTime.now());
 
         teamMemberRepository.save(teamMember);
 
@@ -61,7 +62,7 @@ public class ApiV1TeamService {
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(dto.expiresInHours());
 
         TeamInviteCode invite = teamInviteCodeRepository.findByTeamId(teamId)
-                .orElseGet(() -> TeamInviteCode.createCode(expiresAt, team));
+                .orElseGet(() -> new TeamInviteCode(expiresAt, team));
 
         invite.updateCode(expiresAt);
         teamInviteCodeRepository.save(invite);
@@ -113,10 +114,9 @@ public class ApiV1TeamService {
     private TeamMember createNewMemberSafely(Team team, Long userId) {
         try {
             User ref = userRepository.getReferenceById(userId);
-            TeamMember newMember = TeamMember.createTeamMember(team, ref, Role.MEMBER, LocalDateTime.now());
+            TeamMember newMember = new TeamMember(team, ref, Role.MEMBER, LocalDateTime.now());
             return teamMemberRepository.save(newMember);
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-
+        } catch (DataIntegrityViolationException e) {
             TeamMember existing = teamMemberRepository.findByTeamIdAndUserId(team.getId(), userId)
                     .orElseThrow(() -> e);
             return rejoinOrFail(existing);
@@ -162,7 +162,7 @@ public class ApiV1TeamService {
     private void validateMemberDeleteAuthority(Long teamId, SecurityUser user, Long targetUserId){
 
         if (targetUserId.equals(user.getId())) {
-            throw new ApiException(ErrorCode.CANNOT_KICK_SELF);
+            throw new ApiException(ErrorCode.OWNER_CANNOT_LEAVE);
         }
 
         teamMemberChecker.requireOwner(teamId, user.getId());

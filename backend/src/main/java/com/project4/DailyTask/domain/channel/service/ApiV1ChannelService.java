@@ -22,14 +22,13 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ApiV1ChannelService {
     private final ChannelRepository channelRepository;
-    private final MessageRepository messageRepository;
     private final TeamMemberChecker teamMemberChecker;
 
     @Transactional
     public CreateChannelRes createChannel(Long teamId, SecurityUser user, CreateChannelReq req){
         TeamMember teamMember = teamMemberChecker.findMemberOrThrow(teamId, user.getId());
 
-        Channel channel = Channel.createChannel(teamMember.getTeam(), req.name());
+        Channel channel = new Channel(teamMember.getTeam(), req.name());
 
         channelRepository.save(channel);
 

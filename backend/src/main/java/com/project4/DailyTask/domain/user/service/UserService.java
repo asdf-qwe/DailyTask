@@ -32,7 +32,7 @@ public class UserService {
             throw new ApiException(ErrorCode.LOGIN_ID_ALREADY_EXISTS);
         }
 
-        User user = User.createNew(
+        User user = new User(
                 req.loginId(),
                 req.email(),
                 passwordEncoder.encode(req.password()),

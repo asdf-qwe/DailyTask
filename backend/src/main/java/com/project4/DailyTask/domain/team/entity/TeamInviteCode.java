@@ -32,12 +32,10 @@ public class TeamInviteCode extends BaseEntity {
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
-    public static TeamInviteCode createCode(LocalDateTime expiresAt, Team team){
-        TeamInviteCode teamInviteCode = new TeamInviteCode();
-        teamInviteCode.code = UUID.randomUUID().toString().replace("-","");
-        teamInviteCode.expiresAt = expiresAt;
-        teamInviteCode.team = team;
-        return teamInviteCode;
+    public TeamInviteCode(LocalDateTime expiresAt, Team team){
+        this.code = UUID.randomUUID().toString().replace("-","");
+        this.expiresAt = expiresAt;
+        this.team = team;
     }
 
     public boolean isExpired(LocalDateTime now) {
