@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { MemoSummary } from "@/src/features/memo/types/memo";
+import { MemoSummary, Visibility } from "@/src/features/memo/types/memo";
 
 interface MemoStatsProps {
   totalElements: number;
@@ -20,13 +20,13 @@ const MemoStats = memo(
         <div className="bg-white rounded-xl p-4 border border-gray-200">
           <div className="text-sm text-gray-600 mb-1">공개 메모</div>
           <div className="text-2xl font-bold text-gray-900">
-            {memos.filter((m) => m.sharedToTeam).length}
+            {memos.filter((m) => m.visibility === Visibility.TEAM).length}
           </div>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-200">
           <div className="text-sm text-gray-600 mb-1">비공개 메모</div>
           <div className="text-2xl font-bold text-gray-900">
-            {memos.filter((m) => !m.sharedToTeam).length}
+            {memos.filter((m) => m.visibility === Visibility.PRIVATE).length}
           </div>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-200">
@@ -37,7 +37,7 @@ const MemoStats = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 MemoStats.displayName = "MemoStats";
