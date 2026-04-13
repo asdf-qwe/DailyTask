@@ -1,5 +1,6 @@
 package com.project4.DailyTask.domain.todo.repository;
 
+import com.project4.DailyTask.domain.todo.dto.CalendarRes;
 import com.project4.DailyTask.domain.todo.dto.TodoSummary;
 import com.project4.DailyTask.domain.todo.entity.Todo;
 import com.project4.DailyTask.domain.todo.entity.TodoStatus;
@@ -32,6 +33,22 @@ public interface TodoRepository extends JpaRepository<Todo, Long>, TodoRepositor
             """)
     List<TodoSummary> findByTodosOrderByDueDateAsc(@Param("userId") Long userId, @Param("today") LocalDate today,
                                                    Pageable pageable);
+
+    @Query("""
+            select new com.project4.DailyTask.domain.todo.dto.CalendarRes(
+            t.id,
+            tm.id,
+            tm.name,
+            t.title,
+            t.dueDate,
+            t.todoStatus
+            )
+            from Todo t
+            left join t.team tm
+            where t.owner.id = :userId
+            order By t.dueDate asc, t.id desc
+            """)
+    List<CalendarRes> findByCalendarTodoList(@Param("userId") Long userId);
 
     @Query("""
             select new com.project4.DailyTask.domain.todo.dto.TodoSummary(

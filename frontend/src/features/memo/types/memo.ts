@@ -1,3 +1,8 @@
+export enum Visibility {
+  PRIVATE = "PRIVATE",
+  TEAM = "TEAM",
+}
+
 export interface MemoAuthor {
   id: number;
   name: string;
@@ -6,7 +11,7 @@ export interface MemoAuthor {
 export interface CreateMemoReq {
   title: string;
   content: string;
-  sharedToTeam: boolean;
+  visibility: Visibility;
 }
 
 export interface CreateMemoRes {
@@ -14,7 +19,7 @@ export interface CreateMemoRes {
   teamId: number;
   title: string;
   content: string;
-  sharedToTeam: boolean;
+  visibility: Visibility;
   author: MemoAuthor;
   createdAt: string;
 }
@@ -23,7 +28,7 @@ export interface MemoSummary {
   id: number;
   title: string;
   authorName: string;
-  sharedToTeam: boolean;
+  visibility: Visibility;
   createdAt: string;
 }
 
@@ -47,7 +52,7 @@ export interface MemoRes {
   title: string;
   content: string;
   author: MemoAuthor;
-  sharedToTeam: boolean;
+  visibility: Visibility;
   createdAt: string;
 }
 
@@ -60,7 +65,7 @@ export interface MemoSearchCond {
 export interface UpdateMemoReq {
   title: string;
   content: string;
-  sharedToTeam: boolean;
+  visibility: Visibility;
 }
 
 export interface UpdateMemoRes {

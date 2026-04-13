@@ -35,7 +35,7 @@ public class Memo extends BaseEntity {
     public void changeTitle(String title) {
         String t = title.trim();
         if (t.isBlank()) {
-            throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
+            throw new ApiException(ErrorCode.MEMO_REQUIRED_TITLE);
         }
         if (t.length() > 50) {
             throw new ApiException(ErrorCode.MEMO_TITLE_TOO_LONG);
@@ -45,13 +45,13 @@ public class Memo extends BaseEntity {
 
     public Memo(User user, Team team, String title, String content, Visibility visibility) {
         if (user == null) {
-            throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
+            throw new ApiException(ErrorCode.MEMO_REQUIRED_TITLE);
         }
         if (team == null) {
-            throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
+            throw new ApiException(ErrorCode.MEMO_REQUIRED_TEAM);
         }
         if (visibility == null) {
-            throw new ApiException(ErrorCode.MEMO_REQUIRED_FIELDS);
+            throw new ApiException(ErrorCode.MEMO_REQUIRED_VISIBILITY);
         }
 
         this.user = user;

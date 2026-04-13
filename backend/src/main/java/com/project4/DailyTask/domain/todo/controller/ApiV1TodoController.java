@@ -25,7 +25,7 @@ public class ApiV1TodoController {
 
     @PostMapping("/todos/my")
     public ResponseEntity<ApiResponse<CreateTodoRes>> createTodo(@Valid @RequestBody CreateTodoReq req,
-                                                                 @AuthenticationPrincipal SecurityUser user){
+                                                                 @AuthenticationPrincipal SecurityUser user) {
         CreateTodoRes res = todoService.createTodo(user, req);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(res));
@@ -34,7 +34,7 @@ public class ApiV1TodoController {
     @PostMapping("/teams/{teamId}/todos")
     public ResponseEntity<ApiResponse<CreateTeamTodoRes>> createTeamTodo(@PathVariable Long teamId,
                                                                          @AuthenticationPrincipal SecurityUser user,
-                                                                         @RequestBody CreateTodoReq req){
+                                                                         @RequestBody CreateTodoReq req) {
         CreateTeamTodoRes res = todoService.createTeamTodo(teamId, req, user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(res));
@@ -44,7 +44,7 @@ public class ApiV1TodoController {
     public ResponseEntity<ApiResponse<TodoListRes>> getTodo(@AuthenticationPrincipal SecurityUser user,
                                                             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC)
                                                             Pageable pageable,
-                                                            @ModelAttribute TodoSearchCond cond){
+                                                            @ModelAttribute TodoSearchCond cond) {
         TodoListRes todoListRes = todoService.getTodoList(user, pageable, cond);
 
         return ResponseEntity.ok(ApiResponse.ok(todoListRes));
@@ -55,7 +55,7 @@ public class ApiV1TodoController {
                                                                 @AuthenticationPrincipal SecurityUser user,
                                                                 @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC)
                                                                 Pageable pageable,
-                                                                @ModelAttribute TodoSearchCond cond){
+                                                                @ModelAttribute TodoSearchCond cond) {
         TodoListRes res = todoService.getTeamTodoList(teamId, user, pageable, cond);
 
         return ResponseEntity.ok(ApiResponse.ok(res));
@@ -64,7 +64,7 @@ public class ApiV1TodoController {
     @PatchMapping("/todos/{todoId}")
     public ResponseEntity<ApiResponse<UpdateTodoRes>> updateTodo(@PathVariable Long todoId,
                                                                  @AuthenticationPrincipal SecurityUser user,
-                                                                 @RequestBody UpdateTodoReq req){
+                                                                 @RequestBody UpdateTodoReq req) {
         UpdateTodoRes res = todoService.updateTodo(todoId, user, req);
 
         return ResponseEntity.ok(ApiResponse.ok(res));
@@ -72,18 +72,23 @@ public class ApiV1TodoController {
 
     @DeleteMapping("/todos/{todoId}")
     public ResponseEntity<ApiResponse<Boolean>> deleteTodo(@PathVariable Long todoId,
-                                                        @AuthenticationPrincipal SecurityUser user){
+                                                           @AuthenticationPrincipal SecurityUser user) {
         todoService.deleteTodo(todoId, user);
         return ResponseEntity.ok(ApiResponse.ok(true));
     }
 
     @GetMapping("/todos/upcoming")
-    public ResponseEntity<ApiResponse<List<TodoSummary>>> getUpcomingTodo(@AuthenticationPrincipal SecurityUser user){
+    public ResponseEntity<ApiResponse<List<TodoSummary>>> getUpcomingTodo(@AuthenticationPrincipal SecurityUser user) {
         return ResponseEntity.ok(ApiResponse.ok(todoService.getTodoByDueDate(user)));
     }
 
     @GetMapping("/todos/team/upcoming")
-    public ResponseEntity<ApiResponse<List<TodoSummary>>> getUpcomingTeamTodo(@AuthenticationPrincipal SecurityUser user){
+    public ResponseEntity<ApiResponse<List<TodoSummary>>> getUpcomingTeamTodo(@AuthenticationPrincipal SecurityUser user) {
         return ResponseEntity.ok(ApiResponse.ok(todoService.getTeamTodoByDueDate(user)));
+    }
+
+    @GetMapping("/todos/calendar")
+    public ResponseEntity<ApiResponse<List<CalendarRes>>> getCalendarTodoList(@AuthenticationPrincipal SecurityUser user){
+        return ResponseEntity.ok(ApiResponse.ok(todoService.getCalendarTodoList(user)));
     }
 }

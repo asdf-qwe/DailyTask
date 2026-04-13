@@ -8,6 +8,7 @@ import {
   TodoSearchCond,
   UpdateTodoReq,
   UpdateTodoRes,
+  CalendarRes,
 } from "../types/todo";
 
 export const todoService = {
@@ -101,6 +102,14 @@ export const todoService = {
    */
   deleteTodo: async (todoId: number): Promise<boolean> => {
     const response = await authApi.delete(`/api/v1/todos/${todoId}`);
+    return response.data.data;
+  },
+
+  /**
+   * 캘린더용 Todo 목록 조회
+   */
+  getCalendarTodoList: async (): Promise<CalendarRes[]> => {
+    const response = await authApi.get("/api/v1/todos/calendar");
     return response.data.data;
   },
 };

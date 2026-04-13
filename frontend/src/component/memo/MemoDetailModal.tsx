@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { X, Edit, Trash2, Users, Lock } from "lucide-react";
-import { MemoRes } from "@/src/features/memo/types/memo";
+import { MemoRes, Visibility } from "@/src/features/memo/types/memo";
 
 interface MemoDetailModalProps {
   show: boolean;
@@ -28,7 +28,7 @@ const MemoDetailModal = memo(
                 <span>{new Date(memo.createdAt).toLocaleString()}</span>
                 <span>•</span>
                 <div className="flex items-center gap-1">
-                  {memo.sharedToTeam ? (
+                  {memo.visibility === Visibility.TEAM ? (
                     <>
                       <Users className="w-4 h-4" />
                       <span>공개</span>

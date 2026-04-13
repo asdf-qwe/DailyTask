@@ -182,4 +182,8 @@ public class ApiV1TodoService {
             throw new ApiException(errorCode);
         }
     }
+
+    public List<CalendarRes> getCalendarTodoList(SecurityUser user){
+        return todoRepository.findByCalendarTodoList(user.getId());
+    }
 }
