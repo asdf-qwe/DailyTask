@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { MoreVertical, Users, Lock } from "lucide-react";
-import { MemoSummary } from "@/src/features/memo/types/memo";
+import { MemoSummary, Visibility } from "@/src/features/memo/types/memo";
 
 interface MemoCardProps {
   memo: MemoSummary;
@@ -32,7 +32,7 @@ const MemoCard = memo(({ memo, onClick }: MemoCardProps) => {
             <span className="font-medium">{memo.authorName}</span>
           </div>
           <div className="flex items-center gap-2">
-            {memo.sharedToTeam ? (
+            {memo.visibility === Visibility.TEAM ? (
               <Users className="w-3 h-3" />
             ) : (
               <Lock className="w-3 h-3" />

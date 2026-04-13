@@ -55,3 +55,12 @@ export interface UpdateTodoRes {
   id: number;
   updatedAt: string;
 }
+
+export interface CalendarRes {
+  id: number;
+  teamId?: number;
+  teamName?: string;
+  title: string;
+  dueDate: string;
+  todoStatus: TodoStatus;
+}

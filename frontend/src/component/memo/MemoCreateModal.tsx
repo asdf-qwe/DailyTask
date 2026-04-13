@@ -1,12 +1,13 @@
 import { memo } from "react";
 import { X, Users, Lock } from "lucide-react";
+import { Visibility } from "@/src/features/memo/types/memo";
 
 interface MemoCreateModalProps {
   show: boolean;
   formData: {
     title: string;
     content: string;
-    sharedToTeam: boolean;
+    visibility: Visibility;
   };
   teams: { teamId: number; name: string }[];
   teamId: number | null;
@@ -100,9 +101,9 @@ const MemoCreateModal = memo(
                   <input
                     type="radio"
                     name="public"
-                    checked={formData.sharedToTeam}
+                    checked={formData.visibility === Visibility.TEAM}
                     onChange={() =>
-                      onFormChange({ ...formData, sharedToTeam: true })
+                      onFormChange({ ...formData, visibility: Visibility.TEAM })
                     }
                     className="w-4 h-4"
                   />
@@ -113,9 +114,12 @@ const MemoCreateModal = memo(
                   <input
                     type="radio"
                     name="public"
-                    checked={!formData.sharedToTeam}
+                    checked={formData.visibility === Visibility.PRIVATE}
                     onChange={() =>
-                      onFormChange({ ...formData, sharedToTeam: false })
+                      onFormChange({
+                        ...formData,
+                        visibility: Visibility.PRIVATE,
+                      })
                     }
                     className="w-4 h-4"
                   />

@@ -19,7 +19,6 @@ import {
   Copy,
 } from "lucide-react";
 import Header from "@/src/component/Header";
-import TeamStats from "@/src/component/team/TeamStats";
 import TeamList from "@/src/component/team/TeamList";
 import TeamDetails from "@/src/component/team/TeamDetails";
 import InviteModal from "@/src/component/team/InviteModal";
@@ -361,14 +360,6 @@ export default function TeamPage() {
             </button>
           </div>
         </div>
-
-        {/* Stats */}
-        <TeamStats
-          totalTeams={stats.totalTeams}
-          totalMembers={stats.totalMembers}
-          ownedTeams={stats.ownedTeams}
-          participatingTeams={stats.participatingTeams}
-        />
       </section>
 
       {/* Team List & Details */}
