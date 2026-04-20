@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckSquare,
@@ -15,9 +15,8 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type { EventClickArg } from "@fullcalendar/core";
+import type { DateClickArg } from "@fullcalendar/interaction";
 import Header from "@/src/component/Header";
-import TodoCreateModal from "@/src/component/todo/TodoCreateModal";
-import TodoEditModal from "@/src/component/todo/TodoEditModal";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { useTeam } from "@/src/features/team/context/TeamContext";
 import { Role } from "@/src/features/team/types/team";
@@ -34,9 +33,7 @@ export default function TodoPage() {
   const { isLoading: authLoading } = useAuth();
   const { teams: cachedTeams } = useTeam();
   const queryClient = useQueryClient();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedTodo, setSelectedTodo] = useState<TodoSummary | null>(null);
+  const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("dueDate");
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,9 +49,25 @@ export default function TodoPage() {
   >([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [showInlineAdd, setShowInlineAdd] = useState(false);
+  const [inlineFormData, setInlineFormData] = useState({
     title: "",
     dueDate: "",
+  });
+
+  const [showCalendarInlineAdd, setShowCalendarInlineAdd] = useState(false);
+  const [calendarInlineFormData, setCalendarInlineFormData] = useState({
+    title: "",
+    dueDate: "",
+  });
+
+  const [calendarEditingTodoId, setCalendarEditingTodoId] = useState<
+    number | null
+  >(null);
+  const [calendarEditFormData, setCalendarEditFormData] = useState({
+    title: "",
+    date: "",
+    status: TodoStatus.TODO,
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -62,6 +75,50 @@ export default function TodoPage() {
     date: "",
     status: TodoStatus.TODO,
   });
+
+  const calendarCardRef = useRef<HTMLDivElement>(null);
+  const calendarInlineRef = useRef<HTMLDivElement>(null);
+  const listAddRef = useRef<HTMLDivElement>(null);
+  const listEditRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        calendarCardRef.current &&
+        !calendarCardRef.current.contains(e.target as Node)
+      ) {
+        setCalendarEditingTodoId(null);
+        setShowCalendarInlineAdd(false);
+        setCalendarInlineFormData({ title: "", dueDate: "" });
+      }
+      if (
+        listAddRef.current &&
+        !listAddRef.current.contains(e.target as Node)
+      ) {
+        setShowInlineAdd(false);
+        setInlineFormData({ title: "", dueDate: "" });
+      }
+      if (
+        listEditRef.current &&
+        !listEditRef.current.contains(e.target as Node)
+      ) {
+        setEditingTodoId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (calendarEditingTodoId || showCalendarInlineAdd) {
+      setTimeout(() => {
+        calendarInlineRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }, 50);
+    }
+  }, [calendarEditingTodoId, showCalendarInlineAdd]);
 
   useEffect(() => {
     setTeams(cachedTeams);
@@ -156,11 +213,32 @@ export default function TodoPage() {
       });
   }, [todos, debouncedSearchQuery, sortBy]);
 
-  const handleCreateTodo = useCallback(async () => {
+  const handleCalendarInlineUpdate = useCallback(async () => {
+    if (!calendarEditingTodoId || !calendarEditFormData.title.trim()) return;
+
+    const original = calendarTodos.find((t) => t.id === calendarEditingTodoId);
+    if (!original) return;
+
+    try {
+      const req: UpdateTodoReq = {
+        title: calendarEditFormData.title.trim(),
+        date: calendarEditFormData.date,
+        status: calendarEditFormData.status,
+      };
+      await todoService.updateTodo(calendarEditingTodoId, req);
+      setCalendarEditingTodoId(null);
+      await queryClient.invalidateQueries({ queryKey: ["todos"] });
+    } catch {
+      alert("수정에 실패했습니다.");
+    }
+  }, [calendarEditingTodoId, calendarEditFormData, calendarTodos, queryClient]);
+
+  const handleCalendarInlineCreate = useCallback(async () => {
+    if (!calendarInlineFormData.title.trim()) return;
     try {
       const req: CreateTodoReq = {
-        title: formData.title,
-        dueDate: formData.dueDate,
+        title: calendarInlineFormData.title.trim(),
+        dueDate: calendarInlineFormData.dueDate,
       };
 
       if (viewMode === "personal") {
@@ -173,13 +251,39 @@ export default function TodoPage() {
         await todoService.createTeamTodo(selectedTeamId, req);
       }
 
-      setShowCreateModal(false);
-      setFormData({ title: "", dueDate: "" });
+      setCalendarInlineFormData({ title: "", dueDate: "" });
+      setShowCalendarInlineAdd(false);
       await queryClient.invalidateQueries({ queryKey: ["todos"] });
     } catch {
       alert("Todo 생성에 실패했습니다.");
     }
-  }, [formData, viewMode, selectedTeamId, queryClient]);
+  }, [calendarInlineFormData, viewMode, selectedTeamId, queryClient]);
+
+  const handleInlineCreate = useCallback(async () => {
+    if (!inlineFormData.title.trim()) return;
+    try {
+      const req: CreateTodoReq = {
+        title: inlineFormData.title.trim(),
+        dueDate: inlineFormData.dueDate,
+      };
+
+      if (viewMode === "personal") {
+        await todoService.createTodo(req);
+      } else {
+        if (selectedTeamId === null) {
+          alert("팀을 선택해주세요.");
+          return;
+        }
+        await todoService.createTeamTodo(selectedTeamId, req);
+      }
+
+      setInlineFormData({ title: "", dueDate: "" });
+      setShowInlineAdd(false);
+      await queryClient.invalidateQueries({ queryKey: ["todos"] });
+    } catch {
+      alert("Todo 생성에 실패했습니다.");
+    }
+  }, [inlineFormData, viewMode, selectedTeamId, queryClient]);
 
   const handleStatusChange = useCallback(
     async (todoId: number, newStatus: TodoStatus) => {
@@ -232,20 +336,18 @@ export default function TodoPage() {
         alert("팀 Todo는 오너만 수정할 수 있습니다.");
         return;
       }
-
-      setSelectedTodo(todo);
+      setEditingTodoId(todo.id);
       setEditFormData({
         title: todo.title,
         date: todo.dueDate,
         status: todo.todoStatus,
       });
-      setShowEditModal(true);
     },
     [viewMode, isTeamOwner],
   );
 
   const handleUpdateTodo = useCallback(async () => {
-    if (!selectedTodo) return;
+    if (!editingTodoId) return;
 
     if (viewMode === "team" && !isTeamOwner) {
       alert("팀 Todo는 오너만 수정할 수 있습니다.");
@@ -259,14 +361,13 @@ export default function TodoPage() {
         status: editFormData.status,
       };
 
-      await todoService.updateTodo(selectedTodo.id, req);
-      setShowEditModal(false);
-      setSelectedTodo(null);
+      await todoService.updateTodo(editingTodoId, req);
+      setEditingTodoId(null);
       await queryClient.invalidateQueries({ queryKey: ["todos"] });
     } catch {
       alert("수정에 실패했습니다.");
     }
-  }, [selectedTodo, editFormData, queryClient, viewMode, isTeamOwner]);
+  }, [editingTodoId, editFormData, queryClient, viewMode, isTeamOwner]);
 
   const getStatusColor = (status: TodoStatus) => {
     switch (status) {
@@ -406,13 +507,6 @@ export default function TodoPage() {
                 <Users className="w-4 h-4" />팀
               </button>
             </div>
-
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              <Plus className="w-5 h-5" />새 Todo
-            </button>
           </div>
         </div>
 
@@ -457,7 +551,10 @@ export default function TodoPage() {
 
       <section className="max-w-7xl mx-auto px-6 pb-12">
         {displayMode === "calendar" ? (
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div
+            ref={calendarCardRef}
+            className="bg-white rounded-xl p-6 border border-gray-200"
+          >
             <FullCalendar
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
@@ -476,24 +573,194 @@ export default function TodoPage() {
               }}
               eventClick={(info: EventClickArg) => {
                 const todo = info.event.extendedProps.todo as CalendarRes;
-                alert(
-                  `제목: ${todo.title}\n마감일: ${todo.dueDate}\n상태: ${
-                    todo.todoStatus === TodoStatus.TODO
-                      ? "할 일"
-                      : todo.todoStatus === TodoStatus.IN_PROGRESS
-                        ? "진행중"
-                        : "완료"
-                  }${todo.teamName ? `\n팀: ${todo.teamName}` : ""}`,
+                const canManage = viewMode === "personal" || isTeamOwner;
+                if (!canManage) return;
+                setCalendarEditingTodoId(todo.id);
+                setCalendarEditFormData({
+                  title: todo.title,
+                  date: todo.dueDate,
+                  status: todo.todoStatus,
+                });
+                setShowCalendarInlineAdd(false);
+              }}
+              eventContent={(arg) => {
+                const canManage = viewMode === "personal" || isTeamOwner;
+
+                const getDayCell = (el: HTMLElement) =>
+                  el.closest(".fc-daygrid-day") as HTMLElement | null;
+
+                const handleMouseEnter = (
+                  e: React.MouseEvent<HTMLDivElement>,
+                ) => {
+                  getDayCell(e.currentTarget)?.classList.add(
+                    "fc-day-event-hover",
+                  );
+                };
+                const handleMouseLeave = (
+                  e: React.MouseEvent<HTMLDivElement>,
+                ) => {
+                  getDayCell(e.currentTarget)?.classList.remove(
+                    "fc-day-event-hover",
+                  );
+                };
+
+                return (
+                  <div
+                    className={`truncate px-1 py-0.5 text-xs font-medium text-white transition-all ${
+                      canManage
+                        ? "cursor-pointer hover:brightness-125 hover:scale-[1.03] hover:shadow-md hover:ring-2 hover:ring-white/80 rounded"
+                        : "opacity-80"
+                    }`}
+                    onMouseEnter={canManage ? handleMouseEnter : undefined}
+                    onMouseLeave={canManage ? handleMouseLeave : undefined}
+                  >
+                    {canManage && <span className="mr-1 opacity-70">✎</span>}
+                    {arg.event.title}
+                  </div>
                 );
               }}
-              eventContent={(arg) => (
-                <div className="truncate px-1 py-0.5 text-xs font-medium text-white">
-                  {arg.event.title}
-                </div>
-              )}
+              dateClick={(info: DateClickArg) => {
+                setCalendarInlineFormData({ title: "", dueDate: info.dateStr });
+                setShowCalendarInlineAdd(true);
+                setCalendarEditingTodoId(null);
+                setTimeout(() => {
+                  calendarInlineRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                  });
+                }, 50);
+              }}
             />
+            {/* 캘린더 인라인 폼 (수정/생성 공유 슬롯) */}
+            {(calendarEditingTodoId || showCalendarInlineAdd) && (
+              <div
+                ref={calendarInlineRef}
+                className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-xl border ${
+                  calendarEditingTodoId
+                    ? "bg-yellow-50/70 border-yellow-100"
+                    : "bg-blue-50/50 border-blue-100"
+                }`}
+              >
+                {calendarEditingTodoId ? (
+                  <span className="text-xs text-yellow-600 font-medium shrink-0">
+                    수정
+                  </span>
+                ) : (
+                  <Plus className="w-4 h-4 text-blue-400 shrink-0" />
+                )}
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder={
+                    calendarEditingTodoId
+                      ? undefined
+                      : "새 Todo 제목을 입력하세요..."
+                  }
+                  value={
+                    calendarEditingTodoId
+                      ? calendarEditFormData.title
+                      : calendarInlineFormData.title
+                  }
+                  onChange={(e) =>
+                    calendarEditingTodoId
+                      ? setCalendarEditFormData((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }))
+                      : setCalendarInlineFormData((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")
+                      calendarEditingTodoId
+                        ? handleCalendarInlineUpdate()
+                        : handleCalendarInlineCreate();
+                    if (e.key === "Escape") {
+                      setCalendarEditingTodoId(null);
+                      setShowCalendarInlineAdd(false);
+                      setCalendarInlineFormData({ title: "", dueDate: "" });
+                    }
+                  }}
+                  className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:border-gray-900 bg-white placeholder-gray-400"
+                />
+                <input
+                  type="date"
+                  value={
+                    calendarEditingTodoId
+                      ? calendarEditFormData.date
+                      : calendarInlineFormData.dueDate
+                  }
+                  onChange={(e) =>
+                    calendarEditingTodoId
+                      ? setCalendarEditFormData((prev) => ({
+                          ...prev,
+                          date: e.target.value,
+                        }))
+                      : setCalendarInlineFormData((prev) => ({
+                          ...prev,
+                          dueDate: e.target.value,
+                        }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")
+                      calendarEditingTodoId
+                        ? handleCalendarInlineUpdate()
+                        : handleCalendarInlineCreate();
+                    if (e.key === "Escape") {
+                      setCalendarEditingTodoId(null);
+                      setShowCalendarInlineAdd(false);
+                      setCalendarInlineFormData({ title: "", dueDate: "" });
+                    }
+                  }}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-700 bg-white"
+                />
+                {calendarEditingTodoId && (
+                  <select
+                    value={calendarEditFormData.status}
+                    onChange={(e) =>
+                      setCalendarEditFormData((prev) => ({
+                        ...prev,
+                        status: e.target.value as TodoStatus,
+                      }))
+                    }
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-700 bg-white"
+                  >
+                    <option value={TodoStatus.TODO}>할 일</option>
+                    <option value={TodoStatus.IN_PROGRESS}>진행중</option>
+                    <option value={TodoStatus.DONE}>완료</option>
+                  </select>
+                )}
+                <button
+                  onClick={() =>
+                    calendarEditingTodoId
+                      ? handleCalendarInlineUpdate()
+                      : handleCalendarInlineCreate()
+                  }
+                  disabled={
+                    calendarEditingTodoId
+                      ? !calendarEditFormData.title.trim()
+                      : !calendarInlineFormData.title.trim()
+                  }
+                  className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {calendarEditingTodoId ? "저장" : "추가"}
+                </button>
+                <button
+                  onClick={() => {
+                    setCalendarEditingTodoId(null);
+                    setShowCalendarInlineAdd(false);
+                    setCalendarInlineFormData({ title: "", dueDate: "" });
+                  }}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
-              <span className="text-xs text-gray-500 font-medium">범례</span>
               <span className="flex items-center gap-1 text-xs text-gray-600">
                 <span className="w-3 h-3 rounded-full bg-gray-500 inline-block" />
                 할 일
@@ -515,9 +782,72 @@ export default function TodoPage() {
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {filteredAndSortedTodos.length === 0 && !showInlineAdd && (
+              <div className="text-center py-12">
+                <CheckSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">할 일이 없습니다</p>
+              </div>
+            )}
             {filteredAndSortedTodos.map((todo) => {
               const dueDateStatus = getDueDateStatus(todo.dueDate);
               const canManage = viewMode === "personal" || isTeamOwner;
+              const isEditing = editingTodoId === todo.id;
+
+              if (isEditing) {
+                return (
+                  <div
+                    ref={listEditRef}
+                    key={todo.id}
+                    className="flex items-center gap-3 px-5 py-3 bg-blue-50/50"
+                  >
+                    <input
+                      autoFocus
+                      type="text"
+                      value={editFormData.title}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleUpdateTodo();
+                        if (e.key === "Escape") setEditingTodoId(null);
+                      }}
+                      className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:border-gray-900 bg-white"
+                    />
+                    <input
+                      type="date"
+                      value={editFormData.date}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          date: e.target.value,
+                        }))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleUpdateTodo();
+                        if (e.key === "Escape") setEditingTodoId(null);
+                      }}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-700 bg-white"
+                    />
+                    <button
+                      onClick={handleUpdateTodo}
+                      disabled={!editFormData.title.trim()}
+                      className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      저장
+                    </button>
+                    <button
+                      onClick={() => setEditingTodoId(null)}
+                      className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      취소
+                    </button>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={todo.id}
@@ -625,41 +955,83 @@ export default function TodoPage() {
                 </div>
               );
             })}
+            {/* 인라인 추가 폼 */}
+            {showInlineAdd && (viewMode === "personal" || isTeamOwner) && (
+              <div
+                ref={listAddRef}
+                className="flex items-center gap-3 px-5 py-3 bg-blue-50/50"
+              >
+                <Plus className="w-4 h-4 text-blue-400 shrink-0" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="새 Todo 제목을 입력하세요..."
+                  value={inlineFormData.title}
+                  onChange={(e) =>
+                    setInlineFormData((prev) => ({
+                      ...prev,
+                      title: e.target.value,
+                    }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleInlineCreate();
+                    if (e.key === "Escape") {
+                      setShowInlineAdd(false);
+                      setInlineFormData({ title: "", dueDate: "" });
+                    }
+                  }}
+                  className="flex-1 text-sm outline-none bg-transparent placeholder-gray-400 text-gray-900"
+                />
+                <input
+                  type="date"
+                  value={inlineFormData.dueDate}
+                  onChange={(e) =>
+                    setInlineFormData((prev) => ({
+                      ...prev,
+                      dueDate: e.target.value,
+                    }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleInlineCreate();
+                    if (e.key === "Escape") {
+                      setShowInlineAdd(false);
+                      setInlineFormData({ title: "", dueDate: "" });
+                    }
+                  }}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-700 bg-white"
+                />
+                <button
+                  onClick={handleInlineCreate}
+                  disabled={!inlineFormData.title.trim()}
+                  className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  추가
+                </button>
+                <button
+                  onClick={() => {
+                    setShowInlineAdd(false);
+                    setInlineFormData({ title: "", dueDate: "" });
+                  }}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            )}
+
+            {/* 하단 추가 버튼 */}
+            {!showInlineAdd && (viewMode === "personal" || isTeamOwner) && (
+              <button
+                onClick={() => setShowInlineAdd(true)}
+                className="flex items-center gap-2 px-5 py-3 w-full text-left text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>새 Todo 추가...</span>
+              </button>
+            )}
           </div>
         )}
-
-        {displayMode === "list" &&
-          !isLoading &&
-          filteredAndSortedTodos.length === 0 && (
-            <div className="text-center py-12">
-              <CheckSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">검색 결과가 없습니다</p>
-            </div>
-          )}
       </section>
-
-      <TodoCreateModal
-        show={showCreateModal}
-        formData={formData}
-        isTeamMode={viewMode === "team"}
-        teamName={
-          viewMode === "team" && selectedTeamId
-            ? teams.find((t) => t.teamId === selectedTeamId)?.name || ""
-            : ""
-        }
-        onClose={() => setShowCreateModal(false)}
-        onCreate={handleCreateTodo}
-        onFormChange={setFormData}
-      />
-
-      <TodoEditModal
-        show={showEditModal}
-        formData={editFormData}
-        onClose={() => setShowEditModal(false)}
-        onUpdate={handleUpdateTodo}
-        onFormChange={setEditFormData}
-        getStatusText={getStatusText}
-      />
     </div>
   );
 }

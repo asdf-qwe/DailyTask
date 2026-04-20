@@ -26,10 +26,7 @@ import { memoService } from "@/src/features/memo/service/memoSercice";
 import { RecentMemoRes } from "@/src/features/memo/types/memo";
 import { CreateTeamResponse } from "@/src/features/team/types/team";
 import { todoService } from "@/src/features/todo/service/todoService";
-import {
-  TodoSummary,
-  TodoStatus,
-} from "@/src/features/todo/types/todo";
+import { TodoSummary, TodoStatus } from "@/src/features/todo/types/todo";
 import { notificationService } from "@/src/features/notification/service/notificationService";
 
 export default function Home() {
@@ -297,10 +294,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header currentPage="dashboard" />
 
-      <section className="max-w-7xl mx-auto px-6 pt-8 pb-6">
+      <section className="max-w-7xl mx-auto px-6 pt-8 pb-6 w-full">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-1">
@@ -330,7 +327,7 @@ export default function Home() {
         />
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 pb-12">
+      <section className="max-w-7xl mx-auto px-6 pb-12 w-full flex-1">
         <div className="grid md:grid-cols-3 gap-6">
           <TeamSummary teams={teams} />
           <RecentMemos memos={recentMemos} />
@@ -341,8 +338,8 @@ export default function Home() {
           />
         </div>
       </section>
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <footer className="bg-white border-t border-gray-200 mt-auto">
+        <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-gradient-to-br from-gray-800 to-black rounded flex items-center justify-center">
