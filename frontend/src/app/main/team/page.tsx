@@ -28,6 +28,7 @@ import LeaveTeamModal from "@/src/component/team/LeaveTeamModal";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { useTeam } from "@/src/features/team/context/TeamContext";
 import { teamService } from "@/src/features/team/service/teamService";
+import { useToast } from "@/src/component/ui/Toast";
 import {
   TeamMemberListRes,
   Role,
@@ -47,6 +48,7 @@ interface Team {
 export default function TeamPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { teams: cachedTeams, refreshTeams } = useTeam();
+  const { toast } = useToast();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -248,7 +250,6 @@ export default function TeamPage() {
   const handleRemoveMember = useCallback(
     async (memberId: number) => {
       if (!selectedTeam) return;
-      if (!confirm("정말 해당 멤버를 제거하시겠습니까?")) return;
 
       try {
         const response = await teamService.deleteMember(
@@ -257,10 +258,10 @@ export default function TeamPage() {
         );
         if (response.data) {
           setTeamMembers(teamMembers.filter((m) => m.memberId !== memberId));
-          alert("멤버가 제거되었습니다.");
+          toast("멤버가 제거되었습니다.", "success");
         }
       } catch {
-        alert("멤버 제거에 실패했습니다.");
+        toast("멤버 제거에 실패했습니다.", "error");
       }
     },
     [selectedTeam, teamMembers],

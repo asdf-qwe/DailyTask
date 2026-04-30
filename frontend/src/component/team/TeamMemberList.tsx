@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { Users, Crown, Trash2 } from "lucide-react";
 import { TeamMemberListRes, Role } from "@/src/features/team/types/team";
 
@@ -15,6 +15,7 @@ const TeamMemberList = memo(function TeamMemberList({
   onRemoveMember,
   getRoleBadge,
 }: TeamMemberListProps) {
+  const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null);
   if (members.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">검색 결과가 없습니다</div>
@@ -46,12 +47,40 @@ const TeamMemberList = memo(function TeamMemberList({
               </div>
             </div>
             {teamRole === Role.OWNER && member.role !== Role.OWNER && (
-              <button
-                onClick={() => onRemoveMember(member.memberId)}
-                className="p-2 hover:bg-red-50 rounded-lg"
-              >
-                <Trash2 className="w-4 h-4 text-red-600" />
-              </button>
+              <>
+                {confirmRemoveId === member.memberId && (
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setConfirmRemoveId(null)}
+                  />
+                )}
+                {confirmRemoveId === member.memberId ? (
+                  <div className="flex items-center gap-1 relative z-20">
+                    <button
+                      onClick={() => setConfirmRemoveId(null)}
+                      className="text-xs px-2 py-1 rounded hover:bg-gray-100 text-gray-500"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={() => {
+                        onRemoveMember(member.memberId);
+                        setConfirmRemoveId(null);
+                      }}
+                      className="text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+                    >
+                      제거
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmRemoveId(member.memberId)}
+                    className="p-2 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

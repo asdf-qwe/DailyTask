@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/src/features/auth/context/AuthContext";
 import { AppQueryProvider } from "@/src/features/query/context/QueryProvider";
 import { TeamProvider } from "@/src/features/team/context/TeamContext";
+import { ToastProvider } from "@/src/component/ui/Toast";
 
 export const metadata: Metadata = {
   title: "DailyTask - 팀 협업 플랫폼",
@@ -19,7 +20,9 @@ export default function RootLayout({
       <body className="antialiased">
         <AuthProvider>
           <AppQueryProvider>
-            <TeamProvider>{children}</TeamProvider>
+            <TeamProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </TeamProvider>
           </AppQueryProvider>
         </AuthProvider>
       </body>

@@ -25,7 +25,6 @@ export default function Header({ currentPage = "dashboard" }: HeaderProps) {
 
   const navItems = [
     { id: "dashboard", label: "대시보드", href: "/" },
-    { id: "memo", label: "메모", href: "/main/memo" },
     { id: "chat", label: "채팅", href: "/main/chat" },
     { id: "todo", label: "Todo", href: "/main/todo" },
     { id: "team", label: "팀", href: "/main/team" },

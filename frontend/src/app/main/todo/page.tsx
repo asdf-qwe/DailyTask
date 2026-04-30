@@ -17,6 +17,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import type { EventClickArg } from "@fullcalendar/core";
 import type { DateClickArg } from "@fullcalendar/interaction";
 import Header from "@/src/component/Header";
+import { useToast } from "@/src/component/ui/Toast";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { useTeam } from "@/src/features/team/context/TeamContext";
 import { Role } from "@/src/features/team/types/team";
@@ -33,7 +34,11 @@ export default function TodoPage() {
   const { isLoading: authLoading } = useAuth();
   const { teams: cachedTeams } = useTeam();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
+  const [confirmDeleteTodoId, setConfirmDeleteTodoId] = useState<number | null>(
+    null,
+  );
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("dueDate");
   const [searchQuery, setSearchQuery] = useState("");
@@ -229,7 +234,7 @@ export default function TodoPage() {
       setCalendarEditingTodoId(null);
       await queryClient.invalidateQueries({ queryKey: ["todos"] });
     } catch {
-      alert("수정에 실패했습니다.");
+      toast("수정에 실패했습니다.", "error");
     }
   }, [calendarEditingTodoId, calendarEditFormData, calendarTodos, queryClient]);
 
@@ -245,7 +250,7 @@ export default function TodoPage() {
         await todoService.createTodo(req);
       } else {
         if (selectedTeamId === null) {
-          alert("팀을 선택해주세요.");
+          toast("팀을 선택해주세요.", "warning");
           return;
         }
         await todoService.createTeamTodo(selectedTeamId, req);
@@ -255,7 +260,7 @@ export default function TodoPage() {
       setShowCalendarInlineAdd(false);
       await queryClient.invalidateQueries({ queryKey: ["todos"] });
     } catch {
-      alert("Todo 생성에 실패했습니다.");
+      toast("Todo 생성에 실패했습니다.", "error");
     }
   }, [calendarInlineFormData, viewMode, selectedTeamId, queryClient]);
 
@@ -271,7 +276,7 @@ export default function TodoPage() {
         await todoService.createTodo(req);
       } else {
         if (selectedTeamId === null) {
-          alert("팀을 선택해주세요.");
+          toast("팀을 선택해주세요.", "warning");
           return;
         }
         await todoService.createTeamTodo(selectedTeamId, req);
@@ -281,14 +286,14 @@ export default function TodoPage() {
       setShowInlineAdd(false);
       await queryClient.invalidateQueries({ queryKey: ["todos"] });
     } catch {
-      alert("Todo 생성에 실패했습니다.");
+      toast("Todo 생성에 실패했습니다.", "error");
     }
   }, [inlineFormData, viewMode, selectedTeamId, queryClient]);
 
   const handleStatusChange = useCallback(
     async (todoId: number, newStatus: TodoStatus) => {
       if (viewMode === "team" && !isTeamOwner) {
-        alert("팀 Todo는 오너만 상태를 변경할 수 있습니다.");
+        toast("팀 Todo는 오너만 상태를 변경할 수 있습니다.", "warning");
         return;
       }
 
@@ -305,7 +310,7 @@ export default function TodoPage() {
         await todoService.updateTodo(todoId, req);
         await queryClient.invalidateQueries({ queryKey: ["todos"] });
       } catch {
-        alert("상태 변경에 실패했습니다.");
+        toast("상태 변경에 실패했습니다.", "error");
       }
     },
     [todos, queryClient, viewMode, isTeamOwner],
@@ -314,17 +319,16 @@ export default function TodoPage() {
   const handleDeleteTodo = useCallback(
     async (todoId: number) => {
       if (viewMode === "team" && !isTeamOwner) {
-        alert("팀 Todo는 오너만 삭제할 수 있습니다.");
+        toast("팀 Todo는 오너만 삭제할 수 있습니다.", "warning");
         return;
       }
 
-      if (!confirm("정말 삭제하시겠습니까?")) return;
-
       try {
         await todoService.deleteTodo(todoId);
+        setConfirmDeleteTodoId(null);
         await queryClient.invalidateQueries({ queryKey: ["todos"] });
       } catch {
-        alert("삭제에 실패했습니다.");
+        toast("삭제에 실패했습니다.", "error");
       }
     },
     [queryClient, viewMode, isTeamOwner],
@@ -333,7 +337,7 @@ export default function TodoPage() {
   const handleEditTodo = useCallback(
     (todo: TodoSummary) => {
       if (viewMode === "team" && !isTeamOwner) {
-        alert("팀 Todo는 오너만 수정할 수 있습니다.");
+        toast("팀 Todo는 오너만 수정할 수 있습니다.", "warning");
         return;
       }
       setEditingTodoId(todo.id);
@@ -350,7 +354,7 @@ export default function TodoPage() {
     if (!editingTodoId) return;
 
     if (viewMode === "team" && !isTeamOwner) {
-      alert("팀 Todo는 오너만 수정할 수 있습니다.");
+      toast("팀 Todo는 오너만 수정할 수 있습니다.", "warning");
       return;
     }
 
@@ -365,7 +369,7 @@ export default function TodoPage() {
       setEditingTodoId(null);
       await queryClient.invalidateQueries({ queryKey: ["todos"] });
     } catch {
-      alert("수정에 실패했습니다.");
+      toast("수정에 실패했습니다.", "error");
     }
   }, [editingTodoId, editFormData, queryClient, viewMode, isTeamOwner]);
 
@@ -932,24 +936,47 @@ export default function TodoPage() {
                           />
                         </svg>
                       </button>
-                      <button
-                        onClick={() => handleDeleteTodo(todo.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50"
-                      >
-                        <svg
-                          className="w-3.5 h-3.5 text-red-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                      {confirmDeleteTodoId === todo.id && (
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setConfirmDeleteTodoId(null)}
+                        />
+                      )}
+                      {confirmDeleteTodoId === todo.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setConfirmDeleteTodoId(null)}
+                            className="text-xs px-1.5 py-0.5 rounded hover:bg-gray-100 text-gray-500"
+                          >
+                            취소
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTodo(todo.id)}
+                            className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white hover:bg-red-600"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteTodoId(todo.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
+                          <svg
+                            className="w-3.5 h-3.5 text-red-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

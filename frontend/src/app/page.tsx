@@ -16,10 +16,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Header from "@/src/component/Header";
-import QuickStats from "@/src/component/main/QuickStats";
-import TeamSummary from "@/src/component/main/TeamSummary";
-import RecentMemos from "@/src/component/main/RecentMemos";
 import TodayTodos from "@/src/component/main/TodayTodos";
+import AllTodos from "@/src/component/main/AllTodos";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { useTeam } from "@/src/features/team/context/TeamContext";
 import { memoService } from "@/src/features/memo/service/memoSercice";
@@ -28,10 +26,12 @@ import { CreateTeamResponse } from "@/src/features/team/types/team";
 import { todoService } from "@/src/features/todo/service/todoService";
 import { TodoSummary, TodoStatus } from "@/src/features/todo/types/todo";
 import { notificationService } from "@/src/features/notification/service/notificationService";
+import { useToast } from "@/src/component/ui/Toast";
 
 export default function Home() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { teams: cachedTeams } = useTeam();
+  const { toast } = useToast();
   const [recentMemos, setRecentMemos] = useState<RecentMemoRes[]>([]);
   const [teams, setTeams] = useState<CreateTeamResponse[]>([]);
   const [teamId, setTeamId] = useState<number | null>(null);
@@ -229,11 +229,11 @@ export default function Home() {
             : null;
 
         if (status === 403 && isTeamTodo) {
-          alert("팀 Todo는 팀장만 상태를 변경할 수 있습니다.");
+          toast("팀 Todo는 팀장만 상태를 변경할 수 있습니다.", "warning");
           return;
         }
 
-        alert(backendMessage ?? "Todo 상태 변경에 실패했습니다.");
+        toast(backendMessage ?? "Todo 상태 변경에 실패했습니다.", "error");
       }
     },
     [personalTodayTodos, teamTodayTodos],
@@ -297,16 +297,17 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header currentPage="dashboard" />
 
-      <section className="max-w-7xl mx-auto px-6 pt-8 pb-6 w-full">
+      {/* 인사 + 날짜 */}
+      <section className="max-w-7xl mx-auto px-6 pt-8 pb-4 w-full">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-1">
               안녕하세요, {user?.nickname}님
             </h1>
-            <p className="text-gray-600">오늘도 좋은 하루 보내세요!</p>
+            <p className="text-gray-500 text-sm">오늘도 좋은 하루 보내세요!</p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-semibold text-gray-900">
+            <div className="text-xl font-semibold text-gray-900">
               {new Date().toLocaleDateString("ko-KR", {
                 month: "long",
                 day: "numeric",
@@ -315,22 +316,14 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-        <QuickStats
-          teamsCount={quickStatsData.teamsCount}
-          teamsNames={quickStatsData.teamsNames}
-          todosCount={quickStatsData.todosCount}
-          personalTodosCompleted={quickStatsData.personalTodosCompleted}
-          personalTodosTotal={quickStatsData.personalTodosTotal}
-          teamTodosCount={quickStatsData.teamTodosCount}
-          unreadMessagesCount={quickStatsData.unreadMessagesCount}
-        />
       </section>
 
       <section className="max-w-7xl mx-auto px-6 pb-12 w-full flex-1">
-        <div className="grid md:grid-cols-3 gap-6">
-          <TeamSummary teams={teams} />
-          <RecentMemos memos={recentMemos} />
+        <div className="grid lg:grid-cols-2 gap-6 h-full">
+          {/* 왼쪽: 전체 Todo 목록 */}
+          <AllTodos onToggleTodoStatus={handleToggleTodayTodoStatus} />
+
+          {/* 오른쪽: 오늘 할 Todo 히어로 */}
           <TodayTodos
             personalTodos={personalTodayTodos}
             teamTodos={teamTodayTodos}
@@ -338,6 +331,7 @@ export default function Home() {
           />
         </div>
       </section>
+
       <footer className="bg-white border-t border-gray-200 mt-auto">
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-600">
