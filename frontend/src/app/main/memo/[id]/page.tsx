@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Edit, Trash2, Users, Lock, FileText } from "lucide-react";
 import Header from "@/src/component/Header";
 import MemoCreateModal from "@/src/component/memo/MemoCreateModal";
+import { useToast } from "@/src/component/ui/Toast";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { useTeam } from "@/src/features/team/context/TeamContext";
 import { memoService } from "@/src/features/memo/service/memoSercice";
@@ -18,11 +19,23 @@ import {
 export default function MemoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isLoading: authLoading } = useAuth();
   const { teams: cachedTeams } = useTeam();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const goBackToChat = useCallback(() => {
+    const teamId = searchParams.get("teamId");
+    const channelId = searchParams.get("channelId");
+    const params = new URLSearchParams();
+    if (teamId) params.set("teamId", teamId);
+    if (channelId) params.set("channelId", channelId);
+    router.push(`/main/chat?${params.toString()}`);
+  }, [router, searchParams]);
 
   const [showEditModal, setShowEditModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -69,24 +82,23 @@ export default function MemoDetailPage() {
         await queryClient.invalidateQueries({ queryKey: ["memos"] });
       }
     } catch {
-      alert("메모 수정에 실패했습니다.");
+      toast("메모 수정에 실패했습니다.", "error");
     }
   }, [memo, id, formData, queryClient]);
 
   const handleDelete = useCallback(async () => {
     if (!memo) return;
-    if (!confirm("정말 삭제하시겠습니까?")) return;
 
     try {
       const response = await memoService.deleteMemo(memo.id);
       if (response.data) {
         await queryClient.invalidateQueries({ queryKey: ["memos"] });
-        router.push("/main/memo");
+        goBackToChat();
       }
     } catch {
-      alert("메모 삭제에 실패했습니다.");
+      toast("메모 삭제에 실패했습니다.", "error");
     }
-  }, [memo, queryClient, router]);
+  }, [memo, queryClient, goBackToChat]);
 
   if (authLoading || isLoading) {
     return (
@@ -107,10 +119,10 @@ export default function MemoDetailPage() {
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 mb-4">메모를 찾을 수 없습니다.</p>
           <button
-            onClick={() => router.push("/main/memo")}
+            onClick={goBackToChat}
             className="text-gray-900 underline text-sm"
           >
-            목록으로 돌아가기
+            돌아가기
           </button>
         </div>
       </div>
@@ -125,11 +137,11 @@ export default function MemoDetailPage() {
         {/* 상단 네비게이션 */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => router.push("/main/memo")}
+            onClick={goBackToChat}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm">메모 목록</span>
+            <span className="text-sm">채팅으로 돌아가기</span>
           </button>
           <div className="flex items-center gap-2">
             <button
@@ -139,13 +151,37 @@ export default function MemoDetailPage() {
               <Edit className="w-4 h-4" />
               <span className="text-sm">수정</span>
             </button>
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="text-sm">삭제</span>
-            </button>
+            {confirmDelete && (
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setConfirmDelete(false)}
+              />
+            )}
+            {confirmDelete ? (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-gray-100 text-gray-500 text-sm transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 text-sm transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>정말 삭제</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="text-sm">삭제</span>
+              </button>
+            )}
           </div>
         </div>
 

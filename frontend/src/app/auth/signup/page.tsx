@@ -22,6 +22,7 @@ export default function SignupPage() {
     nickname: "",
   });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [validation, setValidation] = useState({
     loginId: { checked: false, available: false, message: "" },
@@ -180,8 +181,8 @@ export default function SignupPage() {
 
       const response = await authService.signup(signupData);
       if (response.data) {
-        alert("회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.");
-        router.push("/auth/login");
+        setSuccess(true);
+        setTimeout(() => router.push("/auth/login"), 1500);
       } else {
         setError(response.message || "회원가입에 실패했습니다.");
       }
@@ -207,6 +208,14 @@ export default function SignupPage() {
 
         <div className="bg-white rounded-xl border border-gray-200 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {success && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.
+                </span>
+              </div>
+            )}
             {error && (
               <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
